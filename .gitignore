@@ -1,0 +1,4 @@
+.run
+*.db
+.idea
+.DS_Store
