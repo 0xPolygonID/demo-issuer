@@ -2,7 +2,6 @@ package models
 
 import (
 	"github.com/iden3/go-circuits"
-	"time"
 )
 
 // IdentityStatus represents type for state Status
@@ -16,13 +15,6 @@ type IdentityState struct {
 	RootOfRoots        *string
 	ClaimsTreeRoot     *string
 	RevocationTreeRoot *string
-	BlockTimestamp     *int
-	BlockNumber        *int
-	TxID               *string
-	PreviousState      *string
-	Status             *IdentityStatus
-	ModifiedAt         time.Time
-	CreatedAt          time.Time
 }
 
 // ToTreeState returns circuits.TreeState structure
