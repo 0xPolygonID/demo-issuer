@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/iden3/go-iden3-crypto/babyjub"
-	"lightissuer/app"
-	"lightissuer/app/configs"
-	"lightissuer/app/handlers"
-	"lightissuer/services"
+	app2 "lightissuer/issuer/app"
+	"lightissuer/issuer/app/configs"
+	handlers2 "lightissuer/issuer/app/handlers"
+	services2 "lightissuer/issuer/services"
 	"log"
 )
 
@@ -22,8 +22,8 @@ func main() {
 	var privKey babyjub.PrivateKey
 	copy(privKey[:], config.PrivateKey)
 
-	schemaService := services.NewSchemaService(config.URL)
-	dbService, err := services.NewDBService()
+	schemaService := services2.NewSchemaService(config.URL)
+	dbService, err := services2.NewDBService()
 
 	if err != nil {
 		log.Fatal("failed starting DB service", err)
@@ -31,23 +31,23 @@ func main() {
 	}
 
 	// will automatically create an Identity as well for the issuer
-	iService, err := services.NewIdentityService(ctx, &privKey, dbService, schemaService)
+	iService, err := services2.NewIdentityService(ctx, &privKey, dbService, schemaService)
 	if err != nil {
 		log.Fatal("error starting identity service ", err)
 	}
 
-	claimService := services.NewClaimService(iService, dbService, *schemaService)
+	claimService := services2.NewClaimService(iService, dbService, *schemaService)
 	if err != nil {
 		log.Fatal("couldn't get verification key")
 		return
 	}
 
-	h := app.Handlers{Identity: handlers.NewIdentityHandler(iService), Claim: handlers.NewClaimHandler(dbService, claimService, schemaService, iService, config),
-		IDEN3Comm: handlers.NewIDEN3CommHandler(iService, dbService, claimService, schemaService, config.CircuitPath),
+	h := app2.Handlers{Identity: handlers2.NewIdentityHandler(iService), Claim: handlers2.NewClaimHandler(dbService, claimService, schemaService, iService, config),
+		IDEN3Comm: handlers2.NewIDEN3CommHandler(iService, dbService, claimService, schemaService, config.CircuitPath),
 	}
 
 	router := h.Routes()
-	server := app.NewServer(router)
+	server := app2.NewServer(router)
 
 	fmt.Printf("demo-issuer started on %s \n", config.Host)
 
