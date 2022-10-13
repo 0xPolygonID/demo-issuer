@@ -1,59 +1,71 @@
 package main
 
 import (
-	"context"
+	"flag"
 	"fmt"
-	"github.com/iden3/go-iden3-crypto/babyjub"
-	app2 "lightissuer/issuer/app"
-	"lightissuer/issuer/app/configs"
-	handlers2 "lightissuer/issuer/app/handlers"
-	services2 "lightissuer/issuer/services"
-	"log"
+	"issuer/service"
+	"os"
 )
 
 func main() {
+	var fileName string
+	flag.StringVar(&fileName, "cfg-file", "", "an alternative path to the cfg file")
+	flag.Parse()
 
-	ctx := context.Background()
-	config, err := configs.ParseIssuerConfig()
-	if err != nil {
-		log.Fatal("error in parsing config")
+	if err := run(fileName); err != nil {
+		fmt.Fprintf(os.Stdout, "%s\n", err)
+		os.Exit(1)
 	}
-
-	var privKey babyjub.PrivateKey
-	copy(privKey[:], config.PrivateKey)
-
-	schemaService := services2.NewSchemaService(config.URL)
-	dbService, err := services2.NewDBService()
-
-	if err != nil {
-		log.Fatal("failed starting DB service", err)
-		return
-	}
-
-	// will automatically create an Identity as well for the issuer
-	iService, err := services2.NewIdentityService(ctx, &privKey, dbService, schemaService)
-	if err != nil {
-		log.Fatal("error starting identity service ", err)
-	}
-
-	claimService := services2.NewClaimService(iService, dbService, *schemaService)
-	if err != nil {
-		log.Fatal("couldn't get verification key")
-		return
-	}
-
-	h := app2.Handlers{Identity: handlers2.NewIdentityHandler(iService), Claim: handlers2.NewClaimHandler(dbService, claimService, schemaService, iService, config),
-		IDEN3Comm: handlers2.NewIDEN3CommHandler(iService, dbService, claimService, schemaService, config.CircuitPath),
-	}
-
-	router := h.Routes()
-	server := app2.NewServer(router)
-
-	fmt.Printf("demo-issuer started on %s \n", config.Host)
-
-	err = server.Run(config.Port)
-	if err != nil {
-		log.Fatal("error in starting server")
-	}
-
 }
+
+func run(fileName string) error {
+
+	return service.CreateApp(fileName)
+}
+
+//func main() {
+//
+//	ctx := context.Background()
+//	cfgs, err := configs.ParseIssuerConfig()
+//	if err != nil {
+//		log.Fatal("error in parsing cfgs")
+//	}
+//
+//	var privKey babyjub.PrivateKey	// put inside cfg
+//	copy(privKey[:], cfgs.PrivateKey)
+//
+//	schemaService := services2.NewSchemaService(cfgs.URL)
+//	dbService, err := services2.NewDBService()
+//
+//	if err != nil {
+//		log.Fatal("failed starting DB service", err)
+//		return
+//	}
+//
+//	// will automatically create an Identity as well for the issuer
+//	iService, err := services2.NewIdentityService(ctx, &privKey, dbService, schemaService)
+//	if err != nil {
+//		log.Fatal("error starting identity service ", err)
+//	}
+//
+//	claimService := services2.NewClaimService(iService, dbService, *schemaService)
+//	if err != nil {
+//		log.Fatal("couldn't get verification key")
+//		return
+//	}
+//
+//	h := app2.Handlers{Identity: handlers2.NewIdentityHandler(iService), Claim: handlers2.NewClaimHandler(dbService, claimService, schemaService, iService, cfgs),
+//		IDEN3Comm: handlers2.NewIDEN3CommHandler(iService, dbService, claimService, schemaService, cfgs.CircuitPath),
+//	}
+//
+//	router := h.Routes()
+//	server := app2.NewServer(router)
+//
+//	fmt.Printf("demo-issuer started on %s \n", cfgs.Host)
+//
+//	err = server.Run(cfgs.Port)
+//	if err != nil {
+//		log.Fatal("error in starting server")
+//	}
+//
+//}
