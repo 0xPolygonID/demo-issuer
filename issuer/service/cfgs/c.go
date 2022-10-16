@@ -57,7 +57,7 @@ func resolveConfigPath(cfgFilePath string) (string, error) {
 }
 
 func setViperEnvConfig() {
-	viper.SetEnvPrefix("ASSET_BACKEND")
+	viper.SetEnvPrefix("ISSUER_BACKEND")
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	setConfigDefaults()

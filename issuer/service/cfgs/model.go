@@ -8,6 +8,6 @@ type IssuerConfig struct {
 }
 
 type DBConfig struct {
-	Kind             string `mapstructure:"KIND" yaml:"kind"`
-	ConnectionString string `mapstructure:"CONNECTION_STRING" yaml:"connection_string"`
+	Kind     string `mapstructure:"KIND" yaml:"kind"`
+	FilePath string `mapstructure:"FILE_PATH" yaml:"file_path"`
 }
