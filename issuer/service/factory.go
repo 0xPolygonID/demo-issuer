@@ -1,12 +1,13 @@
 package service
 
 import (
+	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
 	"issuer/service/cfgs"
-	"issuer/service/claims"
 	database "issuer/service/db"
 	"issuer/service/http"
 	"issuer/service/identity"
+	"issuer/service/identitystate"
 	"os"
 	"time"
 )
@@ -18,39 +19,37 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	// setup log
 	err = initGlobalLogger(cfg.LogLevel)
 	if err != nil {
 		return err
 	}
-
-	// create dependencies
 
 	db, err := database.New(cfg.DB.FilePath)
 	if err != nil {
 		return err
 	}
 
-	// create main components
-	// identity
-	// claims
-	// agent
-
-	claimsManager, err := claims.New()
+	// create identity state
+	idenState, err := identitystate.New(db, cfg.MerkleTreeDepth)
 	if err != nil {
 		return err
 	}
 
-	identityManager, err := identity.New(db, )
+	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.SecretKey))
 	if err != nil {
 		return err
 	}
 
-	//agent, err := agent
-
-	// init an api server
-	s := http.NewServer(cfg.HttpListenAddress, identityManager, claimsManager)
+	// start service
+	s := http.NewServer(cfg.HttpListenAddress, issuer)
 	return s.Run()
+}
+
+func bytesToJubjubKey(b []byte) babyjub.PrivateKey {
+	var privKey babyjub.PrivateKey
+	copy(privKey[:], b)
+
+	return privKey
 }
 
 func initGlobalLogger(level string) error {
