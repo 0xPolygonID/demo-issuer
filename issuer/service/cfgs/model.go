@@ -5,6 +5,8 @@ type IssuerConfig struct {
 
 	HttpListenAddress string   `mapstructure:"HTTP_LISTEN_ADDRESS" yaml:"http_listen_address"`
 	DB                DBConfig `mapstructure:"DB" yaml:"db"`
+	MerkleTreeDepth   int      `mapstructure:"MERKLE_TREE_DEPTH" yaml:"merkle_tree_depth"`
+	SecretKey         []byte   `mapstructure:"SECRET_KEY" yaml:"secret_key"`
 }
 
 type DBConfig struct {

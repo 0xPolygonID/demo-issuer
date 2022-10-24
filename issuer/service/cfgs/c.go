@@ -28,6 +28,7 @@ func New(altCfgPath string) (*IssuerConfig, error) {
 	if err := viper.Unmarshal(cfgObj); err != nil {
 		return nil, err
 	}
+
 	return cfgObj, nil
 }
 
@@ -57,7 +58,7 @@ func resolveConfigPath(cfgFilePath string) (string, error) {
 }
 
 func setViperEnvConfig() {
-	viper.SetEnvPrefix("ISSUER_BACKEND")
+	viper.SetEnvPrefix("ISSUER_SERVICE")
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	setConfigDefaults()
