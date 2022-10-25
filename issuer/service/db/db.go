@@ -51,6 +51,10 @@ func initDB(conn *bbolt.DB) error {
 	})
 }
 
+func (db *DB) GetConnection() *bbolt.DB {
+	return db.conn
+}
+
 func (db *DB) GetIdentity() (*models.Identity, error) {
 	res := &models.Identity{}
 
@@ -100,12 +104,12 @@ func (db *DB) GetClaim(key []byte) (*models.Claim, error) {
 		return nil, err
 	}
 
-	claimID, err := uuid.ParseBytes(key)
+	_, err = uuid.ParseBytes(key)
 	if err != nil {
 		return nil, err
 	}
 
-	res.ID = claimID
+	res.ID = key
 
 	return res, nil
 }
