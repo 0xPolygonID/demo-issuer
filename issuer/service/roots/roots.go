@@ -4,7 +4,7 @@ import (
 	"context"
 	store "github.com/demonsh/smt-bolt"
 	"github.com/iden3/go-merkletree-sql"
-	"issuer/service/db"
+	"issuer/db"
 )
 
 type Roots struct {

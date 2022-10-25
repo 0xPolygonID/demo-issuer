@@ -2,6 +2,7 @@ package identity
 
 import (
 	"encoding/hex"
+	"fmt"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/processor"
 	"issuer/service/utils"
@@ -69,7 +70,7 @@ func GenerateCoreClaim(req ClaimRequest) (*core.Claim, error) {
 		case SubjectPositionValue:
 			coreClaim.SetValueID(userID)
 		default:
-			return nil, errors.New("unknown subject position")
+			return nil, fmt.Errorf("unknown subject position")
 		}
 	}
 

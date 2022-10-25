@@ -3,8 +3,8 @@ package service
 import (
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
+	database "issuer/db"
 	"issuer/service/cfgs"
-	database "issuer/service/db"
 	"issuer/service/http"
 	"issuer/service/identity"
 	"issuer/service/identitystate"
@@ -24,7 +24,7 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	db, err := database.New(cfg.DB.FilePath)
+	db, err := database.New(cfg.DBFilePath)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.SecretKey))
+	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.SecretKey), cfg.IdentityHostUrl)
 	if err != nil {
 		return err
 	}

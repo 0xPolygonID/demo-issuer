@@ -379,6 +379,25 @@ func (i *Identity) GetIdentity() (*issuer_contract.GetIdentityResponse, error) {
 }
 
 
-func (i *Identity) GetRevocation(nonce uint64) (*models.RevocationStatus, error) {
-	return i.state.GetRevocationStatus(nonce)
+func (i *Identity) GetRevocation(nonce uint64) (*issuer_contract.GetRevocationStatusResponse, error) {
+	rID := new(big.Int).SetUint64(nonce)
+
+	res := &issuer_contract.GetRevocationStatusResponse{}
+	mtp, err := i.state.Revocations.GenerateRevocationProof(rID)
+	if err != nil {
+		return nil, err
+	}
+	res.MTP = mtp
+	res.Issuer.RevocationTreeRoot = i.state.Revocations.RevTree.Root().Hex()
+	res.Issuer.RootOfRoots = i.state.Roots.RootsTree.Root().Hex()
+	res.Issuer.ClaimsTreeRoot = i.state.Claims.ClaimTree.Root().Hex()
+
+	stateHash, err := i.state.GetStateHash()
+	if err != nil {
+		return nil, err
+	}
+	res.Issuer.State = stateHash.Hex()
+
+	return res, nil
+
 }

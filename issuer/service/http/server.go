@@ -12,6 +12,7 @@ import (
 	"issuer/service/contract"
 	"issuer/service/identity"
 	"net/http"
+	"strconv"
 )
 
 type Server struct {
@@ -70,7 +71,7 @@ func (s *Server) newRouter() chi.Router {
 		})
 
 		root.Route("/revocations/{nonce}", func(revs chi.Router) {
-			//rclaim.Get("/revocation/status/{nonce}", s.Claim.GetRevocationStatus)
+			//rclaim.Get("/revocation/status/{nonce}", s.Claim.GetRevocationStatusResponse)
 			revs.Post("/", s.getRevocationStatus)
 		})
 
@@ -152,12 +153,21 @@ func (s *Server) getClaim(w http.ResponseWriter, r *http.Request) {
 	}
 
 	EncodeResponse(w, 200, res)
-
 }
 
 func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
 
-	return
+	nonce, err := strconv.ParseUint(chi.URLParam(r, "nonce"), 10, 64)
+	if err != nil {
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("error on parsing nonce input"))
+	}
+
+	proof, err := s.issuer.GetRevocation(nonce)
+	if err != nil {
+		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't generate non revocation proof for revocation nonce: %d. err: %v", nonce, err))
+		return
+	}
+	EncodeResponse(w, http.StatusOK, proof)
 }
 
 func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
