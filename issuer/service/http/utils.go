@@ -16,3 +16,16 @@ func EncodeResponse(w http.ResponseWriter, statusCode int, res interface{}) {
 		logger.Error(err)
 	}
 }
+
+func JsonToStruct(r *http.Request, target interface{}) error {
+	err := codec.NewDecoder(r.Body, &jsonHandle).Decode(target)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//func ValidateStruct(stct interface{}) (bool, error) {
+//	return govalidator.ValidateStruct(stct)
+//}

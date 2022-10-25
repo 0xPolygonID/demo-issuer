@@ -1,16 +1,10 @@
 package models
 
 type Identity struct {
-	//Identifier string
-	//State      IdentityState
+	//Identifier         string
+	//StateID            int64
+	//State              string
+	//RootOfRoots        *string
+	//ClaimsTreeRoot     *string
+	//RevocationTreeRoot *string
 }
-
-//func NewIdentityFromIdentifier(id *core.ID, rootState string) *Identity {
-//	return &Identity{
-//		Identifier: id.String(),
-//		State: IdentityState{
-//			Identifier: id.String(),
-//			State:      &rootState,
-//		},
-//	}
-//}

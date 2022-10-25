@@ -7,8 +7,9 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
+	"github.com/google/uuid"
 	logger "github.com/sirupsen/logrus"
-	"issuer/service/claims"
+	"issuer/service/contract"
 	"issuer/service/identity"
 	"net/http"
 )
@@ -16,15 +17,13 @@ import (
 type Server struct {
 	httpServer *http.Server
 	address    string
-	identity   *identity.Identity
-	claims     *claims.Claims
+	issuer     *identity.Identity
 }
 
-func NewServer(serviceAddress string, identity *identity.Identity, claims *claims.Claims) *Server {
+func NewServer(serviceAddress string, issuer *identity.Identity) *Server {
 	return &Server{
-		address:  serviceAddress,
-		identity: identity,
-		claims:   claims,
+		address: serviceAddress,
+		issuer:  issuer,
 	}
 }
 
@@ -71,7 +70,7 @@ func (s *Server) newRouter() chi.Router {
 		})
 
 		root.Route("/revocations/{nonce}", func(revs chi.Router) {
-			//rclaim.Get("/revocation/status/{nonce}", s.Claim.RevocationStatus)
+			//rclaim.Get("/revocation/status/{nonce}", s.Claim.GetRevocationStatus)
 			revs.Post("/", s.getRevocationStatus)
 		})
 
@@ -85,19 +84,75 @@ func (s *Server) newRouter() chi.Router {
 }
 
 func (s *Server) getIdentity(w http.ResponseWriter, r *http.Request) {
-	res := &GetIdentityResponse{Identity: s.identity.GetIdentity()}
+	iden, err := s.issuer.GetIdentity()
+	if err != nil {
+		EncodeResponse(w, 500, err)
+	}
 
-	EncodeResponse(w, 200, res)
-}
+	//res := &contract.GetIdentityResponse{
+	//	Identifier: iden.Identifier,
+	//	State: &contract.IdentityState{
+	//		Identifier:         iden.Identifier,
+	//		StateID:            iden.StateID,
+	//		State:              iden.State,
+	//		ClaimsTreeRoot:     iden.ClaimsTreeRoot,
+	//		RevocationTreeRoot: iden.RevocationTreeRoot,
+	//		RootOfRoots:        iden.RootOfRoots,
+	//	},
+	//}
 
-func (s *Server) getClaim(w http.ResponseWriter, r *http.Request) {
-
-	return
+	EncodeResponse(w, 200, iden)
 }
 
 func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
+	req := &contract.CreateClaimRequest{}
+	if err := JsonToStruct(r, req); err != nil {
+		logger.Error("cannot unmarshal json body")
+		EncodeResponse(w, http.StatusBadRequest, err)
+		return
+	}
 
-	return
+	// validate
+
+	// convert to biz-model
+
+	// call issuer add claim
+	res, err := s.issuer.CreateClaim(req)
+	if err != nil {
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
+		return
+	}
+
+	EncodeResponse(w, http.StatusOK, res)
+}
+
+func (s *Server) getClaim(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+
+	if idParam == "" {
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("no claim identifier - can't  parse claim id param"))
+		return
+	}
+
+	claimID, err := uuid.Parse(idParam)
+	if err != nil {
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
+		return
+	}
+
+	claim, err := s.issuer.GetClaim(claimID.String())
+	if err != nil {
+		EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get claim %s, err: %v", claimID.String(), err))
+		return
+	}
+
+	res := &contract.GetClaimResponse{
+		ID:   string(claim.ID),
+		Type: claim.SchemaType,
+	}
+
+	EncodeResponse(w, 200, res)
+
 }
 
 func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
@@ -109,5 +164,3 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 
 	return
 }
-
-
