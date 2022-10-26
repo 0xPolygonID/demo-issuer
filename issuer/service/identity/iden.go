@@ -5,43 +5,38 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/go-chi/render"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
-	"github.com/iden3/go-merkletree-sql"
-	"github.com/iden3/go-schema-processor/processor"
+	"github.com/iden3/go-iden3-crypto/utils"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
-	"github.com/iden3/go-iden3-crypto/utils"
 	issuer_contract "issuer/service/contract"
 	"issuer/service/identitystate"
 	"issuer/service/models"
 	"issuer/service/schema"
 	util "issuer/service/utils"
 	"math/big"
-	"net/http"
+	"strings"
 	"time"
 )
 
 type Identity struct {
-	sk         babyjub.PrivateKey
-	Identifier *core.ID
+	sk          babyjub.PrivateKey
+	Identifier  *core.ID
 	authClaimId []byte
-	state      *identitystate.IdentityState
-	baseUrl    string
+	state       *identitystate.IdentityState
+	baseUrl     string
 }
 
 var (
 	BabyJubSignatureType = "BJJSignature2021"
 )
 
-
 func New(s *identitystate.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
 	iden := &Identity{
-		state:    s,
-		sk:    sk,
+		state:   s,
+		sk:      sk,
 		baseUrl: hostUrl,
 	}
 
@@ -50,7 +45,7 @@ func New(s *identitystate.IdentityState, sk babyjub.PrivateKey, hostUrl string) 
 		return nil, fmt.Errorf("error on identitiy initialization, %v", err)
 	}
 
-	return iden,nil
+	return iden, nil
 }
 
 func (i *Identity) init() error {
@@ -71,7 +66,7 @@ func (i *Identity) init() error {
 		return err
 	}
 
-	err = i.state.Claims.ClaimTree.Add(context.Background(),index, value)
+	err = i.state.Claims.ClaimTree.Add(context.Background(), index, value)
 	if err != nil {
 		return err
 	}
@@ -88,7 +83,7 @@ func (i *Identity) init() error {
 
 	i.Identifier = identifier
 
-	authClaimModel, err := claimToClaimModel(authClaim,models.AuthBJJCredentialURL,models.AuthBJJCredential)
+	authClaimModel, err := claimToClaimModel(authClaim, models.AuthBJJCredentialURL, models.AuthBJJCredential)
 	if err != nil {
 		return err
 	}
@@ -118,7 +113,7 @@ func (i *Identity) init() error {
 	mtProof.IssuerData = verifiable.IssuerData{
 		ID: i.Identifier,
 		State: verifiable.State{
-			Value: &stateHex,
+			Value:          &stateHex,
 			ClaimsTreeRoot: &claimsRootHex,
 		},
 	}
@@ -142,7 +137,7 @@ func (i *Identity) init() error {
 	return err
 }
 
-func (i *Identity) GetAuthClaim() (*models.Claim, error) {
+func (i *Identity) getAuthClaim() (*models.Claim, error) {
 	claim, err := i.state.Claims.GetClaim(i.authClaimId)
 	if err != nil {
 		return nil, err
@@ -207,8 +202,6 @@ func newAuthClaim(key *babyjub.PublicKey, schemaHash core.SchemaHash) (*core.Cla
 		core.WithRevocationNonce(revNonce))
 }
 
-
-
 func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_contract.CreateClaimResponse, error) {
 
 	schemaBytes, _, err := schema.Load(cReq.Schema.URL)
@@ -249,7 +242,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	}
 	claimModel.CredentialStatus = cs
 
-	authClaim, err := i.GetAuthClaim()
+	authClaim, err := i.getAuthClaim()
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +252,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
-	proof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/status/%d",i.Identifier, claimModel.RevNonce)
+	proof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", i.Identifier, claimModel.RevNonce)
 
 	// Save
 	claimModel.Identifier = &issuerIDString
@@ -272,7 +265,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	claimModel.SignatureProof = jsonSignatureProof
 	claimModel.Data = cReq.Data
 
-	err = i.state.SaveClaim(claimModel)
+	err = i.state.Claims.SaveClaim(claimModel)
 	if err != nil {
 		return nil, err
 	}
@@ -312,8 +305,6 @@ func (i *Identity) SignClaimEntry(authClaim *models.Claim, claimEntry *core.Clai
 	return &proof, nil
 }
 
-
-// Sign signs *big.Int using poseidon algorithm.
 // data should be a little-endian bytes representation of *big.Int.
 func (i *Identity) signBytes(data []byte) ([]byte, error) {
 	if len(data) > 32 {
@@ -334,8 +325,6 @@ func (i *Identity) sign(z *big.Int) ([]byte, error) {
 	return sig[:], nil
 }
 
-
-
 func createCredentialStatus(urlBase string, sType verifiable.CredentialStatusType, revNonce uint64) ([]byte, error) {
 	cStatus := verifiable.CredentialStatus{
 		ID:   fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", urlBase, revNonce),
@@ -350,36 +339,118 @@ func createCredentialStatus(urlBase string, sType verifiable.CredentialStatusTyp
 	return b, nil
 }
 
-
 func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error) {
-	i.state.GetClaim()
+	c, err := i.state.Claims.GetClaim([]byte(id))
+	if err != nil {
+		return nil, err
+	}
+
+	claimIdPos, err := getClaimIdPosition(c.CoreClaim)
+	if err != nil {
+		return nil, err
+	}
+
+	credSubjects := make(map[string]interface{})
+	err = json.Unmarshal(c.Data, &credSubjects)
+	if err != nil {
+		return nil, err
+	}
+	credSubjects["type"] = c.SchemaType
+	if len(c.OtherIdentifier) > 0 {
+		credSubjects["id"] = c.OtherIdentifier
+	}
+
+	// * create proof object
+	proofs := make([]interface{}, 0)
+
+	signatureProof := &verifiable.BJJSignatureProof2021{}
+	if c.SignatureProof != nil && string(c.CredentialStatus) != "{}" {
+		err = json.Unmarshal(c.SignatureProof, signatureProof)
+		if err != nil {
+			return nil, err
+		}
+
+		proofs = append(proofs, signatureProof)
+	}
+
+	mtpProof := &verifiable.Iden3SparseMerkleProof{}
+	if !strings.EqualFold(string(c.MTPProof), "{}") {
+		err = json.Unmarshal(c.MTPProof, mtpProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, mtpProof)
+	}
+
+	// create credential status object
+	credStatus := &issuer_contract.CredentialStatus{}
+	if c.CredentialStatus != nil && string(c.CredentialStatus) != "{}" {
+		err = json.Unmarshal(c.CredentialStatus, credStatus)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	res := &issuer_contract.GetClaimResponse{
+		ID:                string(c.ID),
+		Type:              []string{schema.Iden3CredentialSchema},
+		Expiration:        time.Unix(c.Expiration, 0),
+		RevNonce:          c.RevNonce,
+		Updatable:         c.Updatable,
+		Version:           c.Version,
+		Context:           []string{schema.Iden3CredentialSchemaURL, c.SchemaURL},
+		CredentialSchema:  &issuer_contract.CredentialStatus{ID: c.SchemaURL, Type: c.SchemaType},
+		SubjectPosition:   claimIdPos,
+		CredentialSubject: credSubjects,
+		Proof:             proofs,
+		CredentialStatus:  credStatus,
+	}
+
+	return res, nil
+
 }
 
+func getClaimIdPosition(c *core.Claim) (string, error) {
+	claimIdPos, err := c.GetIDPosition()
+	if err != nil {
+		return "", err
+	}
+
+	return subjectPositionIDToString(claimIdPos)
+}
+
+func subjectPositionIDToString(p core.IDPosition) (string, error) {
+	switch p {
+	case core.IDPositionIndex:
+		return SubjectPositionIndex, nil
+	case core.IDPositionValue:
+		return SubjectPositionValue, nil
+	default:
+		return "", fmt.Errorf("id position is not specified")
+	}
+}
 
 func (i *Identity) GetIdentity() (*issuer_contract.GetIdentityResponse, error) {
 	stateHash, err := i.state.GetStateHash()
 	if err != nil {
 		return nil, err
 	}
-	res := &contract2.GetIdentityResponse{
+
+	res := &issuer_contract.GetIdentityResponse{
 		Identifier: i.Identifier.String(),
-		State: &contract2.IdentityState{
-			Identifier: i.Identifier.String(),
-			StateID: ,
-			State: stateHash.Hex(),
-			ClaimsTreeRoot: i.state.Claims.ClaimTree.Root().Hex(),
+		State: &issuer_contract.IdentityState{
+			Identifier:         i.Identifier.String(),
+			State:              stateHash.Hex(),
+			ClaimsTreeRoot:     i.state.Claims.ClaimTree.Root().Hex(),
 			RevocationTreeRoot: i.state.Revocations.RevTree.Root().Hex(),
-			RootOfRoots: i.state.Roots.RootsTree.Root().Hex(),
-
+			RootOfRoots:        i.state.Roots.RootsTree.Root().Hex(),
 		},
-
 	}
 
 	return res, nil
 }
 
-
-func (i *Identity) GetRevocation(nonce uint64) (*issuer_contract.GetRevocationStatusResponse, error) {
+func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevocationStatusResponse, error) {
 	rID := new(big.Int).SetUint64(nonce)
 
 	res := &issuer_contract.GetRevocationStatusResponse{}

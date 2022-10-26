@@ -4,8 +4,6 @@ import (
 	"github.com/iden3/go-merkletree-sql"
 	"issuer/db"
 	"issuer/service/claims"
-	"issuer/service/contract"
-	"issuer/service/models"
 	"issuer/service/revocations"
 	"issuer/service/roots"
 )
@@ -17,7 +15,6 @@ type IdentityState struct {
 }
 
 func New(db *db.DB, treeDepth int) (*IdentityState, error) {
-
 	claims, err := claims.New(db, treeDepth)
 	if err != nil {
 		return nil, err
@@ -46,20 +43,4 @@ func (is *IdentityState) GetStateHash() (*merkletree.Hash, error) {
 		is.Revocations.RevTree.Root().BigInt(),
 		is.Roots.RootsTree.Root().BigInt(),
 	)
-}
-
-func (is *IdentityState) GetIdentityState() (*contract.IdentityState, error) {
-
-}
-
-func (is *IdentityState) GetClaim() (*contract.IdentityState, error) {
-
-}
-
-func (is *IdentityState) SaveClaim(claim *models.Claim) error {
-
-	// save to the tree (Add later)
-
-	// save to the db
-	return is.Claims.SaveClaim(claim)
 }
