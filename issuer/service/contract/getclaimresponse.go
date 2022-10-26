@@ -13,16 +13,13 @@ type GetClaimResponse struct {
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	CredentialStatus  *CredentialStatus      `json:"credentialStatus,omitempty"`
 	SubjectPosition   string                 `json:"subject_position,omitempty"`
-	CredentialSchema  struct {
-		ID   string `json:"@id"`
-		Type string `json:"type"`
-	} `json:"credentialSchema"`
-	Proof interface{} `json:"proof,omitempty"`
+	CredentialSchema  *CredentialStatus      `json:"credentialSchema"`
+	Proof             interface{}            `json:"proof,omitempty"`
 }
 
 type CredentialStatus struct {
-	ID   string               `json:"id"`
-	Type CredentialStatusType `json:"type"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
 }
 
 type CredentialStatusType string

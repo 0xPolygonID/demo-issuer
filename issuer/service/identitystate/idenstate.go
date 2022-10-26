@@ -14,8 +14,6 @@ type IdentityState struct {
 	Claims      *claims.Claims
 	Revocations *revocations.Revocations
 	Roots       *roots.Roots
-
-	//State string
 }
 
 func New(db *db.DB, treeDepth int) (*IdentityState, error) {

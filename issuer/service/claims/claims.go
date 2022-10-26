@@ -39,16 +39,6 @@ func (c *Claims) GetClaim(id []byte) (*models.Claim, error) {
 	return cl, nil
 }
 
-//func (c *Claims) GetClaim(id string) (*models.Claim, error) {
-//	idBytes := []byte(id)
-//	cl, err := c.db.GetClaim(idBytes)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return cl, nil
-//}
-
 func (c *Claims) SaveClaim(claim *models.Claim) error {
 	return c.db.SaveClaim(claim)
 }

@@ -15,6 +15,11 @@ import (
 	"net/url"
 )
 
+const (
+	Iden3CredentialSchema    = "Iden3Credential"
+	Iden3CredentialSchemaURL = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential.json-ld"
+)
+
 func getLoader(_url string) (processor.SchemaLoader, error) {
 	schemaURL, err := url.Parse(_url)
 	if err != nil {

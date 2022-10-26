@@ -90,18 +90,6 @@ func (s *Server) getIdentity(w http.ResponseWriter, r *http.Request) {
 		EncodeResponse(w, 500, err)
 	}
 
-	//res := &contract.GetIdentityResponse{
-	//	Identifier: iden.Identifier,
-	//	State: &contract.IdentityState{
-	//		Identifier:         iden.Identifier,
-	//		StateID:            iden.StateID,
-	//		State:              iden.State,
-	//		ClaimsTreeRoot:     iden.ClaimsTreeRoot,
-	//		RevocationTreeRoot: iden.RevocationTreeRoot,
-	//		RootOfRoots:        iden.RootOfRoots,
-	//	},
-	//}
-
 	EncodeResponse(w, 200, iden)
 }
 
@@ -162,7 +150,7 @@ func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
 		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("error on parsing nonce input"))
 	}
 
-	proof, err := s.issuer.GetRevocation(nonce)
+	proof, err := s.issuer.GetRevocationStatus(nonce)
 	if err != nil {
 		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't generate non revocation proof for revocation nonce: %d. err: %v", nonce, err))
 		return
