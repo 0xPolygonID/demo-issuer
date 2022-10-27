@@ -30,18 +30,18 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	// create identity state
-	idenState, err := state.New(db, cfg.MerkleTreeDepth)
+	idenState, err := state.New(db, cfg.Identity.MerkleTreeDepth)
 	if err != nil {
 		return err
 	}
 
-	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.SecretKey), cfg.IdentityHostUrl)
+	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.Identity.SecretKey), cfg.Identity.IdentityHostUrl)
 	if err != nil {
 		return err
 	}
 
 	// start service
-	s := http.NewServer(cfg.HttpListenAddress, issuer)
+	s := http.NewServer(cfg.Http.Host, cfg.Http.Port, issuer)
 	return s.Run()
 }
 

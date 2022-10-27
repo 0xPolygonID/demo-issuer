@@ -1,0 +1,14 @@
+---
+
+
+log_level: debug
+db_file_path: issuer.db
+
+http:
+  host: '0.0.0.0'
+  port: 8080
+
+identity:
+  secret_key: debug
+  merkle_tree_depth: 32
+  identity_host_url: 8.8.8.8
