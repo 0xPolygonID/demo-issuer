@@ -39,6 +39,15 @@ func (c *Claims) GetClaim(id []byte) (*models.Claim, error) {
 	return cl, nil
 }
 
-func (c *Claims) SaveClaim(claim *models.Claim) error {
+func (c *Claims) SaveClaimDB(claim *models.Claim) error {
 	return c.db.SaveClaim(claim)
+}
+
+func (c *Claims) SaveClaimMT(claim *models.Claim) error {
+	i, v, err := claim.CoreClaim.HiHv()
+	if err != nil {
+		return err
+	}
+
+	return c.ClaimTree.Add(context.Background(), i, v)
 }

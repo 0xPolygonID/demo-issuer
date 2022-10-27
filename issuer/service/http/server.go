@@ -7,8 +7,9 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
-	"github.com/google/uuid"
 	logger "github.com/sirupsen/logrus"
+	"io"
+	"issuer/service/command"
 	"issuer/service/contract"
 	"issuer/service/identity"
 	"net/http"
@@ -16,9 +17,10 @@ import (
 )
 
 type Server struct {
-	httpServer *http.Server
-	address    string
-	issuer     *identity.Identity
+	httpServer  *http.Server
+	address     string
+	issuer      *identity.Identity
+	commHandler *command.Handler
 }
 
 func NewServer(serviceAddress string, issuer *identity.Identity) *Server {
@@ -63,20 +65,15 @@ func (s *Server) newRouter() chi.Router {
 		root.Get("/identity", s.getIdentity)
 
 		root.Route("/claims", func(claims chi.Router) {
-			//rclaim.Get("/{id}", s.Claim.GetClaimByID)
 			claims.Get("/{id}", s.getClaim)
-
-			//rclaim.Post("/", s.Claim.CreateClaim)
 			claims.Post("/", s.createClaim)
 		})
 
 		root.Route("/revocations/{nonce}", func(revs chi.Router) {
-			//rclaim.Get("/revocation/status/{nonce}", s.Claim.GetRevocationStatusResponse)
 			revs.Post("/", s.getRevocationStatus)
 		})
 
 		root.Route("/agent", func(agent chi.Router) {
-			//internal.Post("/", s.IDEN3Comm.Handle)
 			agent.Post("/", s.getAgent)
 		})
 	})
@@ -116,49 +113,43 @@ func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getClaim(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
+	claimID := chi.URLParam(r, "id")
 
-	if idParam == "" {
+	if claimID == "" {
 		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("no claim identifier - can't  parse claim id param"))
 		return
 	}
 
-	claimID, err := uuid.Parse(idParam)
+	res, err := s.issuer.GetClaim(claimID)
 	if err != nil {
-		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
+		EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get claim %s, err: %v", claimID, err))
 		return
-	}
-
-	claim, err := s.issuer.GetClaim(claimID.String())
-	if err != nil {
-		EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get claim %s, err: %v", claimID.String(), err))
-		return
-	}
-
-	res := &contract.GetClaimResponse{
-		ID:   string(claim.ID),
-		Type: claim.SchemaType,
 	}
 
 	EncodeResponse(w, 200, res)
 }
 
 func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
-
 	nonce, err := strconv.ParseUint(chi.URLParam(r, "nonce"), 10, 64)
 	if err != nil {
 		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("error on parsing nonce input"))
+		return
 	}
 
-	proof, err := s.issuer.GetRevocationStatus(nonce)
+	res, err := s.issuer.GetRevocationStatus(nonce)
 	if err != nil {
 		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't generate non revocation proof for revocation nonce: %d. err: %v", nonce, err))
 		return
 	}
-	EncodeResponse(w, http.StatusOK, proof)
+	EncodeResponse(w, http.StatusOK, res)
 }
 
 func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
+	bodyB, err := io.ReadAll(r.Body)
+	if err != nil {
+		EncodeResponse(w, http.StatusBadRequest, "can't bind request to protocol message, err: "+err.Error())
+		return
+	}
 
-	return
+	s.commHandler.Handle(bodyB)
 }

@@ -29,7 +29,6 @@ type ClaimRequest struct {
 // GenerateCoreClaim generate core claim via settings from ClaimRequest.
 func GenerateCoreClaim(req ClaimRequest) (*core.Claim, error) {
 	var revNonce *uint64
-
 	r, err := utils.Rand()
 	if err != nil {
 		return nil, err

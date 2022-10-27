@@ -9,7 +9,7 @@ import (
 
 func main() {
 	var fileName string
-	flag.StringVar(&fileName, "cfg-file", "", "an alternative path to the cfg file")
+	flag.StringVar(&fileName, "cfg-file", "", "alternative path to the cfg file")
 	flag.Parse()
 
 	if err := run(fileName); err != nil {

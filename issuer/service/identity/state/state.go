@@ -1,11 +1,11 @@
-package identitystate
+package state
 
 import (
 	"github.com/iden3/go-merkletree-sql"
 	"issuer/db"
-	"issuer/service/claims"
-	"issuer/service/revocations"
-	"issuer/service/roots"
+	"issuer/service/identity/state/claims"
+	"issuer/service/identity/state/revocations"
+	"issuer/service/identity/state/roots"
 )
 
 type IdentityState struct {

@@ -7,7 +7,7 @@ import (
 	"issuer/service/cfgs"
 	"issuer/service/http"
 	"issuer/service/identity"
-	"issuer/service/identitystate"
+	"issuer/service/identity/state"
 	"os"
 	"time"
 )
@@ -30,7 +30,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	// create identity state
-	idenState, err := identitystate.New(db, cfg.MerkleTreeDepth)
+	idenState, err := state.New(db, cfg.MerkleTreeDepth)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
 	issuer_contract "issuer/service/contract"
-	"issuer/service/identitystate"
+	"issuer/service/identity/state"
 	"issuer/service/models"
 	"issuer/service/schema"
 	util "issuer/service/utils"
@@ -25,7 +25,7 @@ type Identity struct {
 	sk          babyjub.PrivateKey
 	Identifier  *core.ID
 	authClaimId []byte
-	state       *identitystate.IdentityState
+	state       *state.IdentityState
 	baseUrl     string
 }
 
@@ -33,7 +33,7 @@ var (
 	BabyJubSignatureType = "BJJSignature2021"
 )
 
-func New(s *identitystate.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
+func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
 	iden := &Identity{
 		state:   s,
 		sk:      sk,
@@ -128,7 +128,7 @@ func (i *Identity) init() error {
 	authClaimModel.MTPProof = proofB
 	authClaimModel.Identifier = &strIdentifier
 
-	err = i.state.Claims.SaveClaim(authClaimModel)
+	err = i.state.Claims.SaveClaimDB(authClaimModel)
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	claimModel.SignatureProof = jsonSignatureProof
 	claimModel.Data = cReq.Data
 
-	err = i.state.Claims.SaveClaim(claimModel)
+	err = i.state.Claims.SaveClaimDB(claimModel)
 	if err != nil {
 		return nil, err
 	}
@@ -339,12 +339,7 @@ func createCredentialStatus(urlBase string, sType verifiable.CredentialStatusTyp
 	return b, nil
 }
 
-func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error) {
-	c, err := i.state.Claims.GetClaim([]byte(id))
-	if err != nil {
-		return nil, err
-	}
-
+func ClaimModelToIden3Credential(c *models.Claim) (*verifiable.Iden3Credential, error) {
 	claimIdPos, err := getClaimIdPosition(c.CoreClaim)
 	if err != nil {
 		return nil, err
@@ -383,7 +378,7 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 	}
 
 	// create credential status object
-	credStatus := &issuer_contract.CredentialStatus{}
+	credStatus := &verifiable.CredentialStatus{}
 	if c.CredentialStatus != nil && string(c.CredentialStatus) != "{}" {
 		err = json.Unmarshal(c.CredentialStatus, credStatus)
 		if err != nil {
@@ -391,15 +386,21 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 		}
 	}
 
-	res := &issuer_contract.GetClaimResponse{
-		ID:                string(c.ID),
-		Type:              []string{schema.Iden3CredentialSchema},
-		Expiration:        time.Unix(c.Expiration, 0),
-		RevNonce:          c.RevNonce,
-		Updatable:         c.Updatable,
-		Version:           c.Version,
-		Context:           []string{schema.Iden3CredentialSchemaURL, c.SchemaURL},
-		CredentialSchema:  &issuer_contract.CredentialStatus{ID: c.SchemaURL, Type: c.SchemaType},
+	res := &verifiable.Iden3Credential{
+		ID:         string(c.ID),
+		Type:       []string{schema.Iden3CredentialSchema},
+		Expiration: time.Unix(c.Expiration, 0),
+		RevNonce:   c.RevNonce,
+		Updatable:  c.Updatable,
+		Version:    c.Version,
+		Context:    []string{schema.Iden3CredentialSchemaURL, c.SchemaURL},
+		CredentialSchema: struct {
+			ID   string `json:"@id"`
+			Type string `json:"type"`
+		}{
+			ID:   c.SchemaURL,
+			Type: c.SchemaType,
+		},
 		SubjectPosition:   claimIdPos,
 		CredentialSubject: credSubjects,
 		Proof:             proofs,
@@ -407,7 +408,19 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 	}
 
 	return res, nil
+}
 
+func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error) {
+	claimModel, err := i.state.Claims.GetClaim([]byte(id))
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := ClaimModelToIden3Credential(claimModel)
+
+	res := issuer_contract.GetClaimResponse(c)
+
+	return &res, nil
 }
 
 func getClaimIdPosition(c *core.Claim) (string, error) {
