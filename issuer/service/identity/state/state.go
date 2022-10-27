@@ -4,31 +4,28 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 	"issuer/db"
-	"issuer/service/identity/state/claims"
-	"issuer/service/identity/state/revocations"
-	"issuer/service/identity/state/roots"
 	"issuer/service/models"
 )
 
 type IdentityState struct {
-	Claims      *claims.Claims
-	Revocations *revocations.Revocations
-	Roots       *roots.Roots
+	Claims      *Claims
+	Revocations *Revocations
+	Roots       *Roots
 	db          *db.DB
 }
 
-func New(db *db.DB, treeDepth int) (*IdentityState, error) {
-	claims, err := claims.New(db, treeDepth)
+func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
+	claims, err := NewClaims(db, treeDepth)
 	if err != nil {
 		return nil, err
 	}
 
-	revs, err := revocations.New(db, treeDepth)
+	revs, err := NewRevocations(db, treeDepth)
 	if err != nil {
 		return nil, err
 	}
 
-	roots, err := roots.New(db, treeDepth)
+	roots, err := NewRoots(db, treeDepth)
 	if err != nil {
 		return nil, err
 	}

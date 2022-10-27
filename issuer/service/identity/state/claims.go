@@ -1,4 +1,4 @@
-package claims
+package state
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type Claims struct {
 	Tree *merkletree.MerkleTree
 }
 
-func New(db *db.DB, treeDepth int) (*Claims, error) {
+func NewClaims(db *db.DB, treeDepth int) (*Claims, error) {
 	treeStorage, err := store.NewBoltStorage(db.GetConnection())
 	if err != nil {
 		return nil, err

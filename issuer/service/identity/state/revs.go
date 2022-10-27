@@ -1,4 +1,4 @@
-package revocations
+package state
 
 import (
 	"context"
@@ -12,7 +12,7 @@ type Revocations struct {
 	Tree *merkletree.MerkleTree
 }
 
-func New(db *db.DB, treeDepth int) (*Revocations, error) {
+func NewRevocations(db *db.DB, treeDepth int) (*Revocations, error) {
 	treeStorage, err := store.NewBoltStorage(db.GetConnection())
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package roots
+package state
 
 import (
 	"context"
@@ -11,7 +11,7 @@ type Roots struct {
 	Tree *merkletree.MerkleTree
 }
 
-func New(db *db.DB, treeDepth int) (*Roots, error) {
+func NewRoots(db *db.DB, treeDepth int) (*Roots, error) {
 
 	treeStorage, err := store.NewBoltStorage(db.GetConnection())
 	if err != nil {
