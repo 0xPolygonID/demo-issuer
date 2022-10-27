@@ -8,7 +8,7 @@ import (
 )
 
 type Roots struct {
-	RootsTree *merkletree.MerkleTree
+	Tree *merkletree.MerkleTree
 }
 
 func New(db *db.DB, treeDepth int) (*Roots, error) {
@@ -24,6 +24,6 @@ func New(db *db.DB, treeDepth int) (*Roots, error) {
 	}
 
 	return &Roots{
-		RootsTree: roots,
+		Tree: roots,
 	}, nil
 }

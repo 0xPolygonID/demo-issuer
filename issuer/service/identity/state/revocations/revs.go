@@ -9,7 +9,7 @@ import (
 )
 
 type Revocations struct {
-	RevTree *merkletree.MerkleTree
+	Tree *merkletree.MerkleTree
 }
 
 func New(db *db.DB, treeDepth int) (*Revocations, error) {
@@ -24,13 +24,13 @@ func New(db *db.DB, treeDepth int) (*Revocations, error) {
 	}
 
 	return &Revocations{
-		RevTree: revsTree,
+		Tree: revsTree,
 	}, nil
 
 }
 
 // GenerateRevocationProof generates the proof of existence (or non-existence) of an nonce in RevocationTree
 func (r *Revocations) GenerateRevocationProof(nonce *big.Int) (*merkletree.Proof, error) {
-	proof, _, err := r.RevTree.GenerateProof(context.Background(), nonce, r.RevTree.Root())
+	proof, _, err := r.Tree.GenerateProof(context.Background(), nonce, r.Tree.Root())
 	return proof, err
 }

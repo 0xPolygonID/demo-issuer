@@ -11,14 +11,12 @@ import (
 	"github.com/iden3/go-iden3-crypto/utils"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
+	"issuer/service/claim"
 	issuer_contract "issuer/service/contract"
 	"issuer/service/identity/state"
 	"issuer/service/models"
 	"issuer/service/schema"
-	util "issuer/service/utils"
 	"math/big"
-	"strings"
-	"time"
 )
 
 type Identity struct {
@@ -45,16 +43,17 @@ func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identi
 		return nil, fmt.Errorf("error on identitiy initialization, %v", err)
 	}
 
-	return iden, nil
+	err = iden.state.SaveIdentity(iden.Identifier.String())
+	return iden, err
 }
 
 func (i *Identity) init() error {
-	schemaHash, err := core.NewSchemaHashFromHex(models.AuthBJJCredentialHash)
+	schemaHash, err := core.NewSchemaHashFromHex(schema.AuthBJJCredentialHash)
 	if err != nil {
 		return err
 	}
 
-	authClaim, err := newAuthClaim(i.sk.Public(), schemaHash)
+	authClaim, err := claim.NewAuthClaim(i.sk.Public(), schemaHash)
 	if err != nil {
 		return err
 	}
@@ -83,7 +82,7 @@ func (i *Identity) init() error {
 
 	i.Identifier = identifier
 
-	authClaimModel, err := claimToClaimModel(authClaim, models.AuthBJJCredentialURL, models.AuthBJJCredential)
+	authClaimModel, err := claim.CoreClaimToClaimModel(authClaim, schema.AuthBJJCredentialURL, schema.AuthBJJCredential)
 	if err != nil {
 		return err
 	}
@@ -146,63 +145,7 @@ func (i *Identity) getAuthClaim() (*models.Claim, error) {
 	return claim, nil
 }
 
-func claimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*models.Claim, error) {
-	otherIdentifier := ""
-	id, err := claim.GetID()
-	if err != nil {
-
-	}
-	otherIdentifier = id.String()
-
-	switch err {
-	case nil:
-		otherIdentifier = id.String()
-	case core.ErrNoID:
-		return nil, fmt.Errorf("can't get ID, %v", err)
-	default:
-		return nil, fmt.Errorf("encounter error on claim-id extraction, %v", err)
-	}
-
-	var expiration int64
-	if expirationDate, ok := claim.GetExpirationDate(); ok {
-		expiration = expirationDate.Unix()
-	}
-
-	hindex, err := claim.HIndex()
-	if err != nil {
-		return nil, err
-	}
-
-	sb := claim.GetSchemaHash()
-	schemaHash := hex.EncodeToString(sb[:])
-	res := models.Claim{
-		SchemaHash:      schemaHash,
-		SchemaURL:       schemaURL,
-		SchemaType:      schemaType,
-		OtherIdentifier: otherIdentifier,
-		Expiration:      expiration,
-		Updatable:       claim.GetFlagUpdatable(),
-		Version:         claim.GetVersion(),
-		RevNonce:        claim.GetRevocationNonce(),
-		CoreClaim:       claim,
-		HIndex:          hindex.String(),
-	}
-
-	return &res, nil
-}
-
-func newAuthClaim(key *babyjub.PublicKey, schemaHash core.SchemaHash) (*core.Claim, error) {
-	revNonce, err := util.Rand()
-	if err != nil {
-		return nil, err
-	}
-
-	return core.NewClaim(schemaHash,
-		core.WithIndexDataInts(key.X, key.Y),
-		core.WithRevocationNonce(revNonce))
-}
-
-func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_contract.CreateClaimResponse, error) {
+func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_contract.CreateClaimResponse, error) {
 	slots, encodedSchema, err := schema.Process(cReq.Schema.URL, cReq.Schema.Type, cReq.Data)
 	if err != nil {
 		return nil, err
@@ -223,14 +166,14 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
-	claimModel, err := claimToClaimModel(coreClaim, cReq.Schema.URL, cReq.Schema.Type)
+	claimModel, err := claim.CoreClaimToClaimModel(coreClaim, cReq.Schema.URL, cReq.Schema.Type)
 	if err != nil {
 		return nil, err
 	}
 
 	// set credential status
 	issuerIDString := i.Identifier.String()
-	cs, err := createCredentialStatus(i.baseUrl, verifiable.SparseMerkleTreeProof, claimModel.RevNonce)
+	cs, err := claim.CreateCredentialStatus(i.baseUrl, verifiable.SparseMerkleTreeProof, claimModel.RevNonce)
 	if err != nil {
 		return nil, err
 	}
@@ -260,6 +203,11 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	claimModel.Data = cReq.Data
 
 	err = i.state.Claims.SaveClaimDB(claimModel)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.state.SaveIdentity(i.Identifier.String())
 	if err != nil {
 		return nil, err
 	}
@@ -319,122 +267,17 @@ func (i *Identity) sign(z *big.Int) ([]byte, error) {
 	return sig[:], nil
 }
 
-func createCredentialStatus(urlBase string, sType verifiable.CredentialStatusType, revNonce uint64) ([]byte, error) {
-	cStatus := verifiable.CredentialStatus{
-		ID:   fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", urlBase, revNonce),
-		Type: sType,
-	}
-
-	b, err := json.Marshal(cStatus)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
-}
-
-func ClaimModelToIden3Credential(c *models.Claim) (*verifiable.Iden3Credential, error) {
-	claimIdPos, err := getClaimIdPosition(c.CoreClaim)
-	if err != nil {
-		return nil, err
-	}
-
-	credSubjects := make(map[string]interface{})
-	err = json.Unmarshal(c.Data, &credSubjects)
-	if err != nil {
-		return nil, err
-	}
-	credSubjects["type"] = c.SchemaType
-	if len(c.OtherIdentifier) > 0 {
-		credSubjects["id"] = c.OtherIdentifier
-	}
-
-	// * create proof object
-	proofs := make([]interface{}, 0)
-
-	signatureProof := &verifiable.BJJSignatureProof2021{}
-	if c.SignatureProof != nil && string(c.CredentialStatus) != "{}" {
-		err = json.Unmarshal(c.SignatureProof, signatureProof)
-		if err != nil {
-			return nil, err
-		}
-
-		proofs = append(proofs, signatureProof)
-	}
-
-	mtpProof := &verifiable.Iden3SparseMerkleProof{}
-	if !strings.EqualFold(string(c.MTPProof), "{}") {
-		err = json.Unmarshal(c.MTPProof, mtpProof)
-		if err != nil {
-			return nil, err
-		}
-		proofs = append(proofs, mtpProof)
-	}
-
-	// create credential status object
-	credStatus := &verifiable.CredentialStatus{}
-	if c.CredentialStatus != nil && string(c.CredentialStatus) != "{}" {
-		err = json.Unmarshal(c.CredentialStatus, credStatus)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	res := &verifiable.Iden3Credential{
-		ID:         string(c.ID),
-		Type:       []string{schema.Iden3CredentialSchema},
-		Expiration: time.Unix(c.Expiration, 0),
-		RevNonce:   c.RevNonce,
-		Updatable:  c.Updatable,
-		Version:    c.Version,
-		Context:    []string{schema.Iden3CredentialSchemaURL, c.SchemaURL},
-		CredentialSchema: struct {
-			ID   string `json:"@id"`
-			Type string `json:"type"`
-		}{
-			ID:   c.SchemaURL,
-			Type: c.SchemaType,
-		},
-		SubjectPosition:   claimIdPos,
-		CredentialSubject: credSubjects,
-		Proof:             proofs,
-		CredentialStatus:  credStatus,
-	}
-
-	return res, nil
-}
-
 func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error) {
 	claimModel, err := i.state.Claims.GetClaim([]byte(id))
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := ClaimModelToIden3Credential(claimModel)
+	c, err := claim.ClaimModelToIden3Credential(claimModel)
 
 	res := issuer_contract.GetClaimResponse(c)
 
 	return &res, nil
-}
-
-func getClaimIdPosition(c *core.Claim) (string, error) {
-	claimIdPos, err := c.GetIDPosition()
-	if err != nil {
-		return "", err
-	}
-
-	return subjectPositionIDToString(claimIdPos)
-}
-
-func subjectPositionIDToString(p core.IDPosition) (string, error) {
-	switch p {
-	case core.IDPositionIndex:
-		return SubjectPositionIndex, nil
-	case core.IDPositionValue:
-		return SubjectPositionValue, nil
-	default:
-		return "", fmt.Errorf("id position is not specified")
-	}
 }
 
 func (i *Identity) GetIdentity() (*issuer_contract.GetIdentityResponse, error) {

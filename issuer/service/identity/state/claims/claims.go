@@ -9,8 +9,8 @@ import (
 )
 
 type Claims struct {
-	db        *db.DB
-	ClaimTree *merkletree.MerkleTree
+	db   *db.DB
+	Tree *merkletree.MerkleTree
 }
 
 func New(db *db.DB, treeDepth int) (*Claims, error) {
@@ -25,8 +25,8 @@ func New(db *db.DB, treeDepth int) (*Claims, error) {
 	}
 
 	return &Claims{
-		db:        db,
-		ClaimTree: claimTree,
+		db:   db,
+		Tree: claimTree,
 	}, nil
 }
 
@@ -49,5 +49,5 @@ func (c *Claims) SaveClaimMT(claim *models.Claim) error {
 		return err
 	}
 
-	return c.ClaimTree.Add(context.Background(), i, v)
+	return c.Tree.Add(context.Background(), i, v)
 }
