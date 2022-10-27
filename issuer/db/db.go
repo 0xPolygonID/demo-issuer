@@ -104,13 +104,6 @@ func (db *DB) GetClaim(key []byte) (*models.Claim, error) {
 		return nil, err
 	}
 
-	_, err = uuid.ParseBytes(key)
-	if err != nil {
-		return nil, err
-	}
-
-	res.ID = key
-
 	return res, nil
 }
 

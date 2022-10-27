@@ -43,7 +43,7 @@ func resolveConfigPath(cfgFilePath string) (string, error) {
 	}
 
 	if len(cfgFilePath) == 0 {
-		cfgFilename := "issuer_config.yaml"
+		cfgFilename := "issuer_config.default.yaml"
 		cwdCfgPath := fmt.Sprintf("%s/%s", cwd, cfgFilename)
 
 		_, err = os.Stat(cwdCfgPath)

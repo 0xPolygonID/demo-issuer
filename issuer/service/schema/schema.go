@@ -11,14 +11,31 @@ import (
 	"github.com/iden3/go-schema-processor/loaders"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/pkg/errors"
-	"issuer/models"
 	"net/url"
 )
 
 const (
 	Iden3CredentialSchema    = "Iden3Credential"
 	Iden3CredentialSchemaURL = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential.json-ld"
+
+	AuthBJJCredentialHash = "ca938857241db9451ea329256b9c06e5"
+	AuthBJJCredential     = "AuthBJJCredential"
+	AuthBJJCredentialURL  = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld"
+
+	// JSONLD JSON-LD schema format
+	JSONLD SchemaFormat = "json-ld"
+
+	// JSON JSON schema format
+	JSON SchemaFormat = "json"
 )
+
+//const (
+//	AuthBJJCredentialHash = "ca938857241db9451ea329256b9c06e5"
+//	AuthBJJCredential     = "AuthBJJCredential"
+//	AuthBJJCredentialURL  = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld"
+//)
+
+type SchemaFormat string
 
 func Process(url, _type string, data []byte) (*processor.ParsedSlots, string, error) {
 	schemaBytes, _, err := load(url)
@@ -83,7 +100,6 @@ func getParsedSlots(schemaURL, credentialType string, dataBytes []byte) (process
 	return pr.ParseSlots(dataBytes, schema)
 }
 
-// load returns schema content by url
 func load(schemaURL string) (schema []byte, extension string, err error) {
 	var cacheValue interface{}
 	//nolint:gosec //reason: url hash key
@@ -105,7 +121,7 @@ func load(schemaURL string) (schema []byte, extension string, err error) {
 			return nil, "", err
 		}
 		// use request from loader if Redis cache doesn't available.
-		return schemaBytes, string(models.JSONLD), nil
+		return schemaBytes, string(JSONLD), nil
 	}
 
 	schemaJSONStr, ok := cacheValue.(string)
@@ -113,7 +129,7 @@ func load(schemaURL string) (schema []byte, extension string, err error) {
 		return nil, "", errors.Errorf("can't read schema from cache with url %s and key %s", schemaURL, hashKey)
 	}
 
-	return []byte(schemaJSONStr), string(models.JSONLD), nil
+	return []byte(schemaJSONStr), string(JSONLD), nil
 }
 
 func createSchemaHash(schemaBytes []byte, credentialType string) string {

@@ -23,7 +23,9 @@ type Server struct {
 	commHandler *command.Handler
 }
 
-func NewServer(serviceAddress string, issuer *identity.Identity) *Server {
+func NewServer(host, port string, issuer *identity.Identity) *Server {
+	serviceAddress := host + ":" + port
+
 	return &Server{
 		address: serviceAddress,
 		issuer:  issuer,
@@ -103,7 +105,7 @@ func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
 	// convert to biz-model
 
 	// call issuer add claim
-	res, err := s.issuer.CreateClaim(req)
+	res, err := s.issuer.AddClaim(req)
 	if err != nil {
 		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
 		return

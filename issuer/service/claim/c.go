@@ -89,18 +89,9 @@ func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*mo
 	otherIdentifier := ""
 	id, err := claim.GetID()
 	if err != nil {
-
+		return nil, err
 	}
 	otherIdentifier = id.String()
-
-	switch err {
-	case nil:
-		otherIdentifier = id.String()
-	case core.ErrNoID:
-		return nil, fmt.Errorf("can't get ID, %v", err)
-	default:
-		return nil, fmt.Errorf("encounter error on claim-id extraction, %v", err)
-	}
 
 	var expiration int64
 	if expirationDate, ok := claim.GetExpirationDate(); ok {

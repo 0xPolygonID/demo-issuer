@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/iden3/go-circuits"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-jwz"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/pkg/errors"
 	"io"
-	"issuer/service/identity"
+	"issuer/service/claim"
 	"issuer/service/identity/state"
 	"os"
 	"path/filepath"
@@ -59,15 +59,15 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
-	claim, err := comm.idenState.Claims.GetClaim([]byte(fetchRequestBody.ID))
+	c, err := comm.idenState.Claims.GetClaim([]byte(fetchRequestBody.ID))
 	if err != nil {
 		return nil, err
 	}
-	if claim.OtherIdentifier != basicMessage.From {
+	if c.OtherIdentifier != basicMessage.From {
 		return nil, err
 	}
 
-	cred, err := identity.ClaimModelToIden3Credential(claim)
+	cred, err := claim.ClaimModelToIden3Credential(c)
 	if err != nil {
 		return nil, err
 	}

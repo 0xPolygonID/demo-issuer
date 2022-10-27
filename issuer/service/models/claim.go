@@ -6,7 +6,7 @@ import (
 
 type Claim struct {
 	ID              []byte
-	Identifier      *string
+	Identifier      string
 	Issuer          string
 	SchemaHash      string
 	SchemaURL       string
@@ -23,7 +23,7 @@ type Claim struct {
 	MTPProof         []byte
 	SignatureProof   []byte
 	IdentityState    *string
-	Status           *IdentityStatus
+	Status           string
 	CredentialStatus []byte
 	HIndex           string
 }

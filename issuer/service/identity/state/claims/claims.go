@@ -3,6 +3,7 @@ package claims
 import (
 	"context"
 	store "github.com/demonsh/smt-bolt"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 	"issuer/db"
 	"issuer/service/models"
@@ -43,8 +44,8 @@ func (c *Claims) SaveClaimDB(claim *models.Claim) error {
 	return c.db.SaveClaim(claim)
 }
 
-func (c *Claims) SaveClaimMT(claim *models.Claim) error {
-	i, v, err := claim.CoreClaim.HiHv()
+func (c *Claims) SaveClaimMT(claim *core.Claim) error {
+	i, v, err := claim.HiHv()
 	if err != nil {
 		return err
 	}
