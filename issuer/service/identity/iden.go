@@ -66,7 +66,7 @@ func (i *Identity) init() error {
 		return err
 	}
 
-	err = i.state.Claims.ClaimTree.Add(context.Background(), index, value)
+	err = i.state.Claims.Tree.Add(context.Background(), index, value)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (i *Identity) init() error {
 	authClaimModel.Data = marshalledClaimData
 	authClaimModel.Issuer = i.Identifier.String()
 
-	proof, _, err := i.state.Claims.ClaimTree.GenerateProof(context.Background(), index, nil)
+	proof, _, err := i.state.Claims.Tree.GenerateProof(context.Background(), index, nil)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (i *Identity) init() error {
 	mtProof.MTP = proof
 
 	stateHex := currState.Hex()
-	claimsRootHex := i.state.Claims.ClaimTree.Root().Hex()
+	claimsRootHex := i.state.Claims.Tree.Root().Hex()
 	mtProof.IssuerData = verifiable.IssuerData{
 		ID: i.Identifier,
 		State: verifiable.State{
@@ -203,20 +203,14 @@ func newAuthClaim(key *babyjub.PublicKey, schemaHash core.SchemaHash) (*core.Cla
 }
 
 func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_contract.CreateClaimResponse, error) {
-
-	schemaBytes, _, err := schema.Load(cReq.Schema.URL)
-	if err != nil {
-		return nil, err
-	}
-
-	slots, err := schema.Process(cReq.Schema.URL, cReq.Schema.Type, cReq.Data)
+	slots, encodedSchema, err := schema.Process(cReq.Schema.URL, cReq.Schema.Type, cReq.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	claimReq := ClaimRequest{
-		EncodedSchema:   schema.CreateSchemaHash(schemaBytes, cReq.Schema.Type),
-		Slots:           slots,
+		EncodedSchema:   encodedSchema,
+		Slots:           *slots,
 		SubjectID:       cReq.Identifier,
 		Expiration:      cReq.Expiration,
 		Version:         cReq.Version,
@@ -454,9 +448,9 @@ func (i *Identity) GetIdentity() (*issuer_contract.GetIdentityResponse, error) {
 		State: &issuer_contract.IdentityState{
 			Identifier:         i.Identifier.String(),
 			State:              stateHash.Hex(),
-			ClaimsTreeRoot:     i.state.Claims.ClaimTree.Root().Hex(),
-			RevocationTreeRoot: i.state.Revocations.RevTree.Root().Hex(),
-			RootOfRoots:        i.state.Roots.RootsTree.Root().Hex(),
+			ClaimsTreeRoot:     i.state.Claims.Tree.Root().Hex(),
+			RevocationTreeRoot: i.state.Revocations.Tree.Root().Hex(),
+			RootOfRoots:        i.state.Roots.Tree.Root().Hex(),
 		},
 	}
 
@@ -472,9 +466,9 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 		return nil, err
 	}
 	res.MTP = mtp
-	res.Issuer.RevocationTreeRoot = i.state.Revocations.RevTree.Root().Hex()
-	res.Issuer.RootOfRoots = i.state.Roots.RootsTree.Root().Hex()
-	res.Issuer.ClaimsTreeRoot = i.state.Claims.ClaimTree.Root().Hex()
+	res.Issuer.RevocationTreeRoot = i.state.Revocations.Tree.Root().Hex()
+	res.Issuer.RootOfRoots = i.state.Roots.Tree.Root().Hex()
+	res.Issuer.ClaimsTreeRoot = i.state.Claims.Tree.Root().Hex()
 
 	stateHash, err := i.state.GetStateHash()
 	if err != nil {
