@@ -27,6 +27,8 @@ const (
 
 	// JSON JSON schema format
 	JSON SchemaFormat = "json"
+
+	IpfsUrl = "ipfs.io"
 )
 
 //const (
@@ -63,7 +65,7 @@ func getLoader(_url string) (processor.SchemaLoader, error) {
 		return &loaders.HTTP{URL: _url}, nil
 	case "ipfs":
 		return loaders.IPFS{
-			URL: schemaURL.String(),
+			URL: IpfsUrl,
 			CID: schemaURL.Host,
 		}, nil
 	default:
