@@ -12,6 +12,8 @@ func main() {
 	flag.StringVar(&fileName, "cfg-file", "", "alternative path to the cfg file")
 	flag.Parse()
 
+	_ = os.Remove("issuer.db")
+	
 	if err := run(fileName); err != nil {
 		fmt.Fprintf(os.Stdout, "%s\n", err)
 		os.Exit(1)

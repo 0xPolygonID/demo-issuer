@@ -6,11 +6,12 @@ import (
 	"fmt"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
+	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
-	"issuer/service/models"
 	"issuer/service/schema"
 	"issuer/service/utils"
+	"math/big"
 	"strings"
 	"time"
 )
@@ -21,6 +22,34 @@ const (
 	// SubjectPositionValue save subject in value part of claim.
 	SubjectPositionValue = "value"
 )
+
+var (
+	BabyJubSignatureType = "BJJSignature2021"
+)
+
+type Claim struct {
+	ID              []byte
+	Identifier      string
+	Issuer          string
+	SchemaHash      string
+	SchemaURL       string
+	SchemaType      string
+	OtherIdentifier string
+	Expiration      int64
+	// TODO(illia-korotia): delete from db but left in struct.
+	Updatable        bool
+	Revoked          bool
+	Version          uint32
+	RevNonce         uint64
+	Data             []byte
+	CoreClaim        *core.Claim
+	MTPProof         []byte
+	SignatureProof   []byte
+	IdentityState    *string
+	Status           string
+	CredentialStatus []byte
+	HIndex           string
+}
 
 type CoreClaimData struct {
 	EncodedSchema   string
@@ -85,10 +114,10 @@ func GenerateCoreClaim(req CoreClaimData) (*core.Claim, error) {
 	return coreClaim, nil
 }
 
-func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*models.Claim, error) {
+func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*Claim, error) {
 	otherIdentifier := ""
 	id, err := claim.GetID()
-	if err != nil {
+	if err != nil && err != core.ErrNoID {
 		return nil, err
 	}
 	otherIdentifier = id.String()
@@ -105,7 +134,7 @@ func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*mo
 
 	sb := claim.GetSchemaHash()
 	schemaHash := hex.EncodeToString(sb[:])
-	res := models.Claim{
+	res := Claim{
 		SchemaHash:      schemaHash,
 		SchemaURL:       schemaURL,
 		SchemaType:      schemaType,
@@ -146,7 +175,39 @@ func CreateCredentialStatus(urlBase string, sType verifiable.CredentialStatusTyp
 	return b, nil
 }
 
-func ClaimModelToIden3Credential(c *models.Claim) (*verifiable.Iden3Credential, error) {
+func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
+	hashIndex, hashValue, err := claim.CoreClaim.HiHv()
+	if err != nil {
+		return nil, err
+	}
+
+	commonHash, err := poseidon.Hash([]*big.Int{hashIndex, hashValue})
+	if err != nil {
+		return nil, err
+	}
+
+	issuerMTP := &verifiable.Iden3SparseMerkleProof{}
+	err = json.Unmarshal(claim.MTPProof, issuerMTP)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := signFunc(commonHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// followed https://w3c-ccg.github.io/ld-proofs/
+	proof := verifiable.BJJSignatureProof2021{}
+	proof.Type = BabyJubSignatureType
+	proof.Signature = hex.EncodeToString(sig)
+	issuerMTP.IssuerData.AuthClaim = claim.CoreClaim
+	proof.IssuerData = issuerMTP.IssuerData
+
+	return &proof, nil
+}
+
+func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) {
 	claimIdPos, err := getClaimIdPosition(c.CoreClaim)
 	if err != nil {
 		return nil, err

@@ -148,7 +148,6 @@ func Status(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
 	item, ok := cacheStorage.Get(id)
-
 	if !ok {
 		log.Printf("item not found %v", id)
 		http.NotFound(w, r)

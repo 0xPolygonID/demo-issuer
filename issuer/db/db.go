@@ -2,9 +2,9 @@ package db
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/ugorji/go/codec"
 	"go.etcd.io/bbolt"
+	"issuer/service/claim"
 	"issuer/service/models"
 )
 
@@ -82,7 +82,7 @@ func (db *DB) SaveIdentity(iden *models.Identity) error {
 }
 
 // TODO: remove ID complicated implementation
-func (db *DB) GetClaim(key []byte) (*models.Claim, error) {
+func (db *DB) GetClaim(key []byte) (*claim.Claim, error) {
 	claimB := make([]byte, 0)
 
 	err := db.conn.View(func(tx *bbolt.Tx) error {
@@ -98,7 +98,7 @@ func (db *DB) GetClaim(key []byte) (*models.Claim, error) {
 		return nil, err
 	}
 
-	res := &models.Claim{}
+	res := &claim.Claim{}
 	err = codec.NewDecoderBytes(claimB, &jsonHandle).Decode(res)
 	if err != nil {
 		return nil, err
@@ -107,30 +107,32 @@ func (db *DB) GetClaim(key []byte) (*models.Claim, error) {
 	return res, nil
 }
 
-func (db *DB) SaveClaim(c *models.Claim) error {
+func (db *DB) SaveClaim(c *claim.Claim) error {
 	claimB := make([]byte, 0)
 	err := codec.NewEncoderBytes(&claimB, &jsonHandle).Encode(c)
 	if err != nil {
 		return err
 	}
 
-	claimId := uuid.New()
-	key := []byte(claimId.String())
+	claimId, err := c.CoreClaim.HIndex()
+	if err != nil {
+		return err
+	}
 
 	return db.conn.Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket(ClaimsBucketName).Put(key, claimB)
+		return tx.Bucket(ClaimsBucketName).Put(claimId.Bytes(), claimB)
 	})
 }
 
-func (db *DB) GetAllClaims() ([]models.Claim, error) {
-	res := []models.Claim{}
+func (db *DB) GetAllClaims() ([]claim.Claim, error) {
+	res := []claim.Claim{}
 
 	return res, db.conn.View(func(tx *bbolt.Tx) error {
 
 		b := tx.Bucket(ClaimsBucketName)
 
 		return b.ForEach(func(k, v []byte) error {
-			c := models.Claim{}
+			c := claim.Claim{}
 			err := codec.NewDecoderBytes(v, &jsonHandle).Decode(c)
 			if err != nil {
 				return err

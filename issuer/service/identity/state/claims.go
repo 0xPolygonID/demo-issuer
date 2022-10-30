@@ -6,7 +6,7 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 	"issuer/db"
-	"issuer/service/models"
+	"issuer/service/claim"
 )
 
 type Claims struct {
@@ -31,7 +31,7 @@ func NewClaims(db *db.DB, treeDepth int) (*Claims, error) {
 	}, nil
 }
 
-func (c *Claims) GetClaim(id []byte) (*models.Claim, error) {
+func (c *Claims) GetClaim(id []byte) (*claim.Claim, error) {
 	cl, err := c.db.GetClaim(id)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (c *Claims) GetClaim(id []byte) (*models.Claim, error) {
 	return cl, nil
 }
 
-func (c *Claims) SaveClaimDB(claim *models.Claim) error {
+func (c *Claims) SaveClaimDB(claim *claim.Claim) error {
 	return c.db.SaveClaim(claim)
 }
 

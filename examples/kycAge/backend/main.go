@@ -21,6 +21,8 @@ func main() {
 		Handler: mux,
 	}
 
+	fmt.Println("Running backend service on 3000")
+
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen:%+s\n", err)
 	}

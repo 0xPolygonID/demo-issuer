@@ -4,6 +4,7 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 	"issuer/db"
+	"issuer/service/claim"
 	"issuer/service/models"
 )
 
@@ -57,9 +58,10 @@ func (is *IdentityState) AddClaimToTree(c *core.Claim) error {
 	return is.Claims.SaveClaimMT(c)
 }
 
-func (is *IdentityState) AddClaimToDB(c *models.Claim) error {
+func (is *IdentityState) AddClaimToDB(c *claim.Claim) error {
 	return is.Claims.SaveClaimDB(c)
 }
+
 func (is *IdentityState) GetStateHash() (*merkletree.Hash, error) {
 	return merkletree.HashElems(
 		is.Claims.Tree.Root().BigInt(),
