@@ -29,6 +29,7 @@ func New(altCfgPath string) (*IssuerConfig, error) {
 		return nil, err
 	}
 
+	logger.Infof("issuer config: \n %v", cfgObj)
 	return cfgObj, nil
 }
 

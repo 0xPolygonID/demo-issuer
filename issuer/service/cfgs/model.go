@@ -1,10 +1,11 @@
 package cfgs
 
 type IssuerConfig struct {
-	LogLevel   string   `mapstructure:"LOG_LEVEL" yaml:"log_level"`
-	DBFilePath string   `mapstructure:"DB_FILE_PATH" yaml:"db_file_path"`
-	Http       Http     `mapstructure:"HTTP" yaml:"http"`
-	Identity   Identity `mapstructure:"IDENTITY" yaml:"identity"`
+	LogLevel    string   `mapstructure:"LOG_LEVEL" yaml:"log_level"`
+	DBFilePath  string   `mapstructure:"DB_FILE_PATH" yaml:"db_file_path"`
+	CircuitPath string   `mapstructure:"CIRCUIT_PATH" yaml:"circuit_path"`
+	Http        Http     `mapstructure:"HTTP" yaml:"http"`
+	Identity    Identity `mapstructure:"IDENTITY" yaml:"identity"`
 }
 
 type Http struct {

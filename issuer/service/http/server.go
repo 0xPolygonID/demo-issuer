@@ -23,12 +23,13 @@ type Server struct {
 	commHandler *command.Handler
 }
 
-func NewServer(host, port string, issuer *identity.Identity) *Server {
+func NewServer(host, port string, issuer *identity.Identity, commHandler *command.Handler) *Server {
 	serviceAddress := host + ":" + port
 
 	return &Server{
-		address: serviceAddress,
-		issuer:  issuer,
+		address:     serviceAddress,
+		issuer:      issuer,
+		commHandler: commHandler,
 	}
 }
 

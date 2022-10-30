@@ -2,19 +2,16 @@ package identity
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
-	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-iden3-crypto/utils"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
 	"issuer/service/claim"
 	issuer_contract "issuer/service/contract"
 	"issuer/service/identity/state"
-	"issuer/service/models"
 	"issuer/service/schema"
 	"math/big"
 )
@@ -26,10 +23,6 @@ type Identity struct {
 	state       *state.IdentityState
 	baseUrl     string
 }
-
-var (
-	BabyJubSignatureType = "BJJSignature2021"
-)
 
 func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
 	iden := &Identity{
@@ -183,17 +176,17 @@ func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_c
 	}
 	claimModel.CredentialStatus = cs
 
-	authClaim, err := i.getAuthClaim()
+	c, err := i.state.Claims.GetClaim(i.authClaimId.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	proof, err := i.signClaimEntry(authClaim, coreClaim)
+	proof, err := claim.SignClaimEntry(c, i.sign)
 	if err != nil {
 		return nil, err
 	}
 
-	proof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", i.Identifier, claimModel.RevNonce)
+	proof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", i.baseUrl, claimModel.RevNonce)
 
 	// Save
 	claimModel.Identifier = issuerIDString
@@ -206,7 +199,12 @@ func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_c
 	claimModel.SignatureProof = jsonSignatureProof
 	claimModel.Data = cReq.Data
 
-	err = i.state.Claims.SaveClaimDB(claimModel)
+	err = i.state.AddClaimToTree(coreClaim)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.state.AddClaimToDB(claimModel)
 	if err != nil {
 		return nil, err
 	}
@@ -275,15 +273,6 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 
 }
 
-func (i *Identity) getAuthClaim() (*models.Claim, error) {
-	claim, err := i.state.Claims.GetClaim(i.authClaimId.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return claim, nil
-}
-
 // data should be a little-endian bytes representation of *big.Int.
 func (i *Identity) signBytes(data []byte) ([]byte, error) {
 	if len(data) > 32 {
@@ -302,36 +291,4 @@ func (i *Identity) sign(z *big.Int) ([]byte, error) {
 
 	sig := i.sk.SignPoseidon(z).Compress()
 	return sig[:], nil
-}
-
-func (i *Identity) signClaimEntry(authClaim *models.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error) {
-	hashIndex, hashValue, err := claimEntry.HiHv()
-	if err != nil {
-		return nil, err
-	}
-
-	commonHash, err := poseidon.Hash([]*big.Int{hashIndex, hashValue})
-	if err != nil {
-		return nil, err
-	}
-
-	issuerMTP := verifiable.Iden3SparseMerkleProof{}
-	err = json.Unmarshal(authClaim.MTPProof, issuerMTP)
-	if err != nil {
-		return nil, err
-	}
-
-	sig, err := i.sign(commonHash)
-	if err != nil {
-		return nil, err
-	}
-
-	// followed https://w3c-ccg.github.io/ld-proofs/
-	proof := verifiable.BJJSignatureProof2021{}
-	proof.Type = BabyJubSignatureType
-	proof.Signature = hex.EncodeToString(sig)
-	issuerMTP.IssuerData.AuthClaim = authClaim.CoreClaim
-	proof.IssuerData = issuerMTP.IssuerData
-
-	return &proof, nil
 }
