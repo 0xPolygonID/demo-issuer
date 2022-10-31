@@ -21,7 +21,7 @@ func New(altCfgPath string) (*IssuerConfig, error) {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		logger.Infof("Using config file: %s", viper.ConfigFileUsed())
+		logger.Infof("using config file: %s", viper.ConfigFileUsed())
 	}
 
 	cfgObj := &IssuerConfig{}
@@ -29,7 +29,7 @@ func New(altCfgPath string) (*IssuerConfig, error) {
 		return nil, err
 	}
 
-	logger.Infof("issuer config: \n %v", cfgObj)
+	logger.Infof("issuer config: %v", cfgObj)
 	return cfgObj, nil
 }
 

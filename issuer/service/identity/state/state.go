@@ -3,9 +3,10 @@ package state
 import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
+	logger "github.com/sirupsen/logrus"
 	"issuer/db"
+	"issuer/db/models"
 	"issuer/service/claim"
-	"issuer/service/models"
 )
 
 type IdentityState struct {
@@ -16,6 +17,8 @@ type IdentityState struct {
 }
 
 func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
+	logger.Debug("creating new identity state")
+
 	claims, err := NewClaims(db, treeDepth)
 	if err != nil {
 		return nil, err
@@ -55,14 +58,20 @@ func (is *IdentityState) SaveIdentity(identifier string) error {
 }
 
 func (is *IdentityState) AddClaimToTree(c *core.Claim) error {
+	logger.Debug("IdentityState.AddClaimToTree() invoked")
+
 	return is.Claims.SaveClaimMT(c)
 }
 
 func (is *IdentityState) AddClaimToDB(c *claim.Claim) error {
+	logger.Debug("IdentityState.AddClaimToDB() invoked")
+
 	return is.Claims.SaveClaimDB(c)
 }
 
 func (is *IdentityState) GetStateHash() (*merkletree.Hash, error) {
+	logger.Debug("GetStateHash() invoked")
+
 	return merkletree.HashElems(
 		is.Claims.Tree.Root().BigInt(),
 		is.Revocations.Tree.Root().BigInt(),

@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/render"
 	logger "github.com/sirupsen/logrus"
 	"io"
+	http2 "issuer/http"
 	"issuer/service/command"
 	"issuer/service/contract"
 	"issuer/service/identity"
@@ -24,6 +25,7 @@ type Server struct {
 }
 
 func NewServer(host, port string, issuer *identity.Identity, commHandler *command.Handler) *Server {
+
 	serviceAddress := host + ":" + port
 
 	return &Server{
@@ -34,6 +36,8 @@ func NewServer(host, port string, issuer *identity.Identity, commHandler *comman
 }
 
 func (s *Server) Close(ctx context.Context) error {
+	logger.Debug("Server.Close() invoked")
+
 	if s.httpServer == nil {
 		return fmt.Errorf("error on server.Close(). http server is not running")
 	}
@@ -42,13 +46,17 @@ func (s *Server) Close(ctx context.Context) error {
 }
 
 func (s *Server) Run() error {
-	logger.Info("starting HTTP server (address: %s)", s.address)
+	logger.Debug("Server.Run() invoked")
+
+	logger.Infof("starting HTTP server (address: %s)", s.address)
 
 	s.httpServer = &http.Server{Addr: s.address, Handler: s.newRouter()}
 	return s.httpServer.ListenAndServe()
 }
 
 func (s *Server) newRouter() chi.Router {
+	logger.Debug("Server.newRouter() invoked")
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -85,19 +93,23 @@ func (s *Server) newRouter() chi.Router {
 }
 
 func (s *Server) getIdentity(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getIdentity() invoked")
+
 	iden, err := s.issuer.GetIdentity()
 	if err != nil {
-		EncodeResponse(w, 500, err)
+		http2.EncodeResponse(w, 500, err)
 	}
 
-	EncodeResponse(w, 200, iden)
+	http2.EncodeResponse(w, 200, iden)
 }
 
 func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.createClaim() invoked")
+
 	req := &contract.CreateClaimRequest{}
-	if err := JsonToStruct(r, req); err != nil {
+	if err := http2.JsonToStruct(r, req); err != nil {
 		logger.Error("cannot unmarshal json body")
-		EncodeResponse(w, http.StatusBadRequest, err)
+		http2.EncodeResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -108,49 +120,55 @@ func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
 	// call issuer add claim
 	res, err := s.issuer.AddClaim(req)
 	if err != nil {
-		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
+		http2.EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
 		return
 	}
 
-	EncodeResponse(w, http.StatusOK, res)
+	http2.EncodeResponse(w, http.StatusOK, res)
 }
 
 func (s *Server) getClaim(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getClaim() invoked")
+
 	claimID := chi.URLParam(r, "id")
 
 	if claimID == "" {
-		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("no claim identifier - can't  parse claim id param"))
+		http2.EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("no claim identifier - can't  parse claim id param"))
 		return
 	}
 
 	res, err := s.issuer.GetClaim(claimID)
 	if err != nil {
-		EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get claim %s, err: %v", claimID, err))
+		http2.EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get claim %s, err: %v", claimID, err))
 		return
 	}
 
-	EncodeResponse(w, 200, res)
+	http2.EncodeResponse(w, 200, res)
 }
 
 func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getRevocationStatus() invoked")
+
 	nonce, err := strconv.ParseUint(chi.URLParam(r, "nonce"), 10, 64)
 	if err != nil {
-		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("error on parsing nonce input"))
+		http2.EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("error on parsing nonce input"))
 		return
 	}
 
 	res, err := s.issuer.GetRevocationStatus(nonce)
 	if err != nil {
-		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't generate non revocation proof for revocation nonce: %d. err: %v", nonce, err))
+		http2.EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't generate non revocation proof for revocation nonce: %d. err: %v", nonce, err))
 		return
 	}
-	EncodeResponse(w, http.StatusOK, res)
+	http2.EncodeResponse(w, http.StatusOK, res)
 }
 
 func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getAgent() invoked")
+
 	bodyB, err := io.ReadAll(r.Body)
 	if err != nil {
-		EncodeResponse(w, http.StatusBadRequest, "can't bind request to protocol message, err: "+err.Error())
+		http2.EncodeResponse(w, http.StatusBadRequest, "can't bind request to protocol message, err: "+err.Error())
 		return
 	}
 

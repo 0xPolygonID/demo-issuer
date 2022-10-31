@@ -10,6 +10,7 @@ import (
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/pkg/errors"
+	logger "github.com/sirupsen/logrus"
 	"io"
 	"issuer/service/claim"
 	"issuer/service/identity/state"
@@ -20,7 +21,7 @@ import (
 // MaxBodySizeBytes defines is 2 MB for protocol message
 const MaxBodySizeBytes = 2 * 1000 * 1000
 
-// Handler provides handlers for zk proof
+// Handler provides handler for zk proof
 type Handler struct {
 	idenState   *state.IdentityState
 	circuitPath string
@@ -39,6 +40,8 @@ func NewHandler(
 
 // Handle POST /api/v1/agent
 func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, error) {
+	logger.Debug("CommandHandler.Handle() invoked")
+
 	basicMessage, err := Unpack(comm.circuitPath, body)
 	if err != nil {
 		return nil, err
@@ -86,6 +89,8 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 
 // Unpack returns unpacked message from transport envelope with verification of zeroknowledge proof
 func Unpack(circuitPath string, envelope []byte) (*iden3comm.BasicMessage, error) {
+	logger.Debug("CommandHandler.Unpack() invoked")
+
 	token, err := jwz.Parse(string(envelope))
 	if err != nil {
 		return nil, err
@@ -123,10 +128,14 @@ func Unpack(circuitPath string, envelope []byte) (*iden3comm.BasicMessage, error
 }
 
 func getVerificationKey(basePath string, circuitID circuits.CircuitID) ([]byte, error) {
+	logger.Debug("CommandHandler.getVerificationKey() invoked")
+
 	return getPathToFile(basePath, circuitID, "verification_key.json")
 }
 
 func getPathToFile(basePath string, circuitID circuits.CircuitID, fileName string) ([]byte, error) {
+	logger.Debug("CommandHandler.getPathToFile() invoked")
+
 	path := filepath.Join(basePath, string(circuitID), fileName)
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {

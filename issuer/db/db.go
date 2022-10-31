@@ -2,10 +2,11 @@ package db
 
 import (
 	"fmt"
+	logger "github.com/sirupsen/logrus"
 	"github.com/ugorji/go/codec"
 	"go.etcd.io/bbolt"
+	"issuer/db/models"
 	"issuer/service/claim"
-	"issuer/service/models"
 )
 
 var (
@@ -22,6 +23,7 @@ type DB struct {
 
 func New(dbFilePath string) (*DB, error) {
 	//conn, err := bbolt.Open("database.conn", 0600, nil)
+	logger.Debugf("opening new DB connection (file-path: %s)", dbFilePath)
 	conn, err := bbolt.Open(dbFilePath, 0600, nil)
 	if err != nil {
 		return nil, err

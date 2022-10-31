@@ -3,39 +3,44 @@ package service
 import (
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
+	"issuer/cfgs"
 	database "issuer/db"
-	"issuer/service/cfgs"
 	"issuer/service/command"
 	"issuer/service/http"
 	"issuer/service/identity"
 	"issuer/service/identity/state"
 	"os"
-	"time"
 )
 
 func CreateApp(altCfgPath string) error {
+	logger.Info("boot up issuer service")
+
+	logger.Info("loading Configuration")
 	cfg, err := cfgs.New(altCfgPath)
 	if err != nil {
 		return err
 	}
 
+	logger.Info("setting up logger")
 	err = initGlobalLogger(cfg.LogLevel)
 	if err != nil {
 		return err
 	}
 
+	logger.Info("creating DB")
 	db, err := database.New(cfg.DBFilePath)
 	if err != nil {
 		return err
 	}
 
-	// create identity state
+	logger.Info("creating identity state")
 	idenState, err := state.NewIdentityState(db, cfg.Identity.MerkleTreeDepth)
 	if err != nil {
 		return err
 	}
 
-	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.Identity.SecretKey), cfg.Identity.IdentityHostUrl)
+	logger.Info("creating Identity")
+	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.Identity.SecretKey), cfg.HostUrl)
 	if err != nil {
 		return err
 	}
@@ -44,6 +49,8 @@ func CreateApp(altCfgPath string) error {
 
 	// start service
 	s := http.NewServer(cfg.Http.Host, cfg.Http.Port, issuer, commHandler)
+
+	logger.Infof("spining up API server @%s", cfg.Http.Host+":"+cfg.Http.Port)
 	return s.Run()
 }
 
@@ -61,7 +68,7 @@ func initGlobalLogger(level string) error {
 	}
 
 	logger.SetLevel(logLevel)
-	logger.SetFormatter(&logger.JSONFormatter{TimestampFormat: time.RFC3339Nano})
+	//logger.SetFormatter(&logger.JSONFormatter{TimestampFormat: time.RFC3339Nano})
 	logger.SetOutput(os.Stdout)
 	return nil
 }

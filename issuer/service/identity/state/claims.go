@@ -5,6 +5,7 @@ import (
 	store "github.com/demonsh/smt-bolt"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
+	logger "github.com/sirupsen/logrus"
 	"issuer/db"
 	"issuer/service/claim"
 )
@@ -15,6 +16,8 @@ type Claims struct {
 }
 
 func NewClaims(db *db.DB, treeDepth int) (*Claims, error) {
+	logger.Debug("creating new claims state")
+
 	treeStorage, err := store.NewBoltStorage(db.GetConnection())
 	if err != nil {
 		return nil, err
@@ -32,6 +35,8 @@ func NewClaims(db *db.DB, treeDepth int) (*Claims, error) {
 }
 
 func (c *Claims) GetClaim(id []byte) (*claim.Claim, error) {
+	logger.Debugf("GetClaim() invoked with id %x", id)
+
 	cl, err := c.db.GetClaim(id)
 	if err != nil {
 		return nil, err
@@ -41,10 +46,14 @@ func (c *Claims) GetClaim(id []byte) (*claim.Claim, error) {
 }
 
 func (c *Claims) SaveClaimDB(claim *claim.Claim) error {
+	logger.Debugf("SaveClaimDB() invoked with claim %v", claim)
+
 	return c.db.SaveClaim(claim)
 }
 
 func (c *Claims) SaveClaimMT(claim *core.Claim) error {
+	logger.Debugf("SaveClaimMT() invoked with claim %v", claim)
+
 	i, v, err := claim.HiHv()
 	if err != nil {
 		return err

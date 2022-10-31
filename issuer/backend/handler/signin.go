@@ -1,32 +1,45 @@
-package handlers
+package handler
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	//auth "github.com/bajpai244/go-iden3-auth"
 	"github.com/iden3/go-circuits"
-	auth "github.com/iden3/go-iden3-auth"
+	"github.com/iden3/go-iden3-auth"
 	"github.com/iden3/go-iden3-auth/loaders"
 	"github.com/iden3/go-iden3-auth/pubsignals"
 	"github.com/iden3/go-iden3-auth/state"
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/patrickmn/go-cache"
+	logger "github.com/sirupsen/logrus"
 	"io"
+	"issuer/cfgs"
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 )
 
 var cacheStorage = cache.New(60*time.Minute, 60*time.Minute)
 
-func GetQR(w http.ResponseWriter, r *http.Request) {
+func NewHandler(config *cfgs.IssuerConfig) *Handler {
+	return &Handler{cfg: config}
+}
+
+type Handler struct {
+	cfg *cfgs.IssuerConfig
+}
+
+func (h *Handler) GetQR(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Backend.GetQR() invoked")
+
 	sessionID := rand.Intn(1000000)
 
-	hostUrl := os.Getenv("HOST_URL")
+	hostUrl := h.cfg.HostUrl
+	if len(hostUrl) == 0 {
+		log.Fatal("host-url is not set")
+	}
 	t := r.URL.Query().Get("type")
 	uri := fmt.Sprintf("%s/api/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
 
@@ -57,7 +70,9 @@ func GetQR(w http.ResponseWriter, r *http.Request) {
 		request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
 	}
 
-	cacheStorage.Set(strconv.Itoa(sessionID), request, cache.DefaultExpiration)
+	sId := strconv.Itoa(sessionID)
+	logger.Tracef("cache - storing id %s on cahce", sId)
+	cacheStorage.Set(sId, request, cache.DefaultExpiration)
 
 	msgBytes, err := json.Marshal(request)
 	if err != nil {
@@ -76,22 +91,22 @@ func GetQR(w http.ResponseWriter, r *http.Request) {
 }
 
 // Callback works with sign-in callbacks
-func Callback(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Backend.Callback() invoked")
+
 	switch r.Method {
 	case http.MethodPost:
 		// get query params from request
 		sessionID := r.URL.Query().Get("sessionId")
-		keyDIR := os.Getenv("KEY_DIR")
 		tokenBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "cant read bytes", http.StatusBadRequest)
 			return
 		}
 
-		if keyDIR == "" {
-			fmt.Println("please, provide KEY_DIR env")
-			http.Error(w, "Verifier can't verify token. Key loader is not setup", http.StatusInternalServerError)
-			return
+		keyDIR := h.cfg.KeyDir
+		if len(keyDIR) == 0 {
+			log.Fatal("host-url is not set")
 		}
 
 		resolver := state.ETHResolver{
@@ -103,13 +118,12 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		verifier := auth.NewVerifier(verificationKeyloader, loaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolver)
 		authRequest, wasFound := cacheStorage.Get(sessionID)
 		if wasFound == false {
-			fmt.Println("auth request was not found for session ID:", sessionID)
+			logger.Errorf("auth request was not found for session ID:", sessionID)
 			http.Error(w, "no request", http.StatusBadRequest)
 			return
 		}
 
-		arm, err := verifier.FullVerify(r.Context(), string(tokenBytes),
-			authRequest.(protocol.AuthorizationRequestMessage))
+		arm, err := verifier.FullVerify(r.Context(), string(tokenBytes), authRequest.(protocol.AuthorizationRequestMessage))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -128,7 +142,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		// TODO: Where is this being used in production?
 		cacheStorage.Set(sessionID, m, cache.DefaultExpiration)
 
-		//nolint // -
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(mBytes)
@@ -140,16 +153,17 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 }
 
 // Status checks response status
-func Status(w http.ResponseWriter, r *http.Request) {
-	//nolint // -
+func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Backend.Status() invoked")
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
 	id := r.URL.Query().Get("id")
-
+	logger.Tracef("cache - getting id %s from cahce\n", id)
 	item, ok := cacheStorage.Get(id)
 	if !ok {
-		log.Printf("item not found %v", id)
+		logger.Errorf("item not found %v", id)
 		http.NotFound(w, r)
 		return
 	}

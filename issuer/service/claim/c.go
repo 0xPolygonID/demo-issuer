@@ -62,7 +62,7 @@ type CoreClaimData struct {
 }
 
 // GenerateCoreClaim generate core claim via settings from CoreClaimData.
-func GenerateCoreClaim(req CoreClaimData) (*core.Claim, error) {
+func GenerateCoreClaim(req *CoreClaimData) (*core.Claim, error) {
 	var revNonce *uint64
 	r, err := utils.Rand()
 	if err != nil {
@@ -145,6 +145,7 @@ func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*Cl
 		RevNonce:        claim.GetRevocationNonce(),
 		CoreClaim:       claim,
 		HIndex:          hindex.String(),
+		ID:              hindex.Bytes(),
 	}
 
 	return &res, nil

@@ -1,8 +1,10 @@
 ---
 
-log_level: debug
+log_level: trace
 db_file_path: issuer.db
 circuit_path: circuits/
+key_dir: backend/keys
+host_url: https://667c-46-121-236-194.eu.ngrok.io
 http:
   host: '0.0.0.0'
   port: 8001
@@ -10,4 +12,4 @@ http:
 identity:
   secret_key: [48,35,125,91,136,34,33,104,95,41,38,54,28,167,232,31,18,53,213,250,239,2,188,251,249,159,69,151,24,191,217,82]
   merkle_tree_depth: 32
-  identity_host_url: https://22b8-46-121-236-194.eu.ngrok.io
+#  identity_host_url: https://c3f3-46-121-236-194.eu.ngrok.io

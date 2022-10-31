@@ -9,6 +9,7 @@ import (
 	"github.com/iden3/go-iden3-crypto/utils"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
+	logger "github.com/sirupsen/logrus"
 	"issuer/service/claim"
 	issuer_contract "issuer/service/contract"
 	"issuer/service/identity/state"
@@ -41,11 +42,18 @@ func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identi
 }
 
 func (i *Identity) init() error {
+	logger.Debug("Identity.init() invoked")
+
+	logger.Debug("setup genesis state")
+
 	identifier, authClaim, err := i.setupGenesisState()
 	if err != nil {
 		return err
 	}
 	i.Identifier = identifier
+	logger.Debugf("identity identifier: %v", i.Identifier)
+
+	logger.Debug("generating auth claim proof")
 
 	proof, err := i.generateProof(i.authClaimId)
 	if err != nil {
@@ -71,6 +79,7 @@ func (i *Identity) init() error {
 	authClaimModel.MTPProof = proof
 	authClaimModel.Identifier = i.Identifier.String()
 
+	logger.Debugf("adding auth claim to db, claim-id: %x", authClaimModel.ID)
 	err = i.state.AddClaimToDB(authClaimModel)
 	if err != nil {
 		return err
@@ -80,16 +89,20 @@ func (i *Identity) init() error {
 }
 
 func (i *Identity) setupGenesisState() (*core.ID, *core.Claim, error) {
+	logger.Trace("getting auth schema hash")
+
 	schemaHash, err := core.NewSchemaHashFromHex(schema.AuthBJJCredentialHash)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	logger.Trace("creating new auth claim")
 	authClaim, err := claim.NewAuthClaim(i.sk.Public(), schemaHash)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	logger.Trace("adding auth claim to the claims tree")
 	err = i.state.AddClaimToTree(authClaim)
 	if err != nil {
 		return nil, nil, err
@@ -143,12 +156,15 @@ func (i *Identity) generateProof(claimId *big.Int) ([]byte, error) {
 }
 
 func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_contract.CreateClaimResponse, error) {
+	logger.Debug("AddClaim() invoked")
+
+	logger.Tracef("process schema - url: %s", cReq.Schema.URL)
 	slots, encodedSchema, err := schema.Process(cReq.Schema.URL, cReq.Schema.Type, cReq.Data)
 	if err != nil {
 		return nil, err
 	}
 
-	claimReq := claim.CoreClaimData{
+	claimReq := &claim.CoreClaimData{
 		EncodedSchema:   encodedSchema,
 		Slots:           *slots,
 		SubjectID:       cReq.Identifier,
@@ -158,6 +174,7 @@ func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_c
 		SubjectPosition: cReq.SubjectPosition,
 	}
 
+	logger.Trace("generating core-claim from the request")
 	coreClaim, err := claim.GenerateCoreClaim(claimReq)
 	if err != nil {
 		return nil, err
@@ -175,12 +192,15 @@ func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_c
 		return nil, err
 	}
 	claimModel.CredentialStatus = cs
+	logger.Trace("finished creating the claim object from the user request")
 
+	logger.Trace("getting auth claim")
 	c, err := i.state.Claims.GetClaim(i.authClaimId.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Trace("signing claim entry")
 	proof, err := claim.SignClaimEntry(c, i.sign)
 	if err != nil {
 		return nil, err
@@ -199,16 +219,19 @@ func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_c
 	claimModel.SignatureProof = jsonSignatureProof
 	claimModel.Data = cReq.Data
 
+	logger.Trace("adding claim to the claims tree")
 	err = i.state.AddClaimToTree(coreClaim)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Trace("adding claim to the claims DB")
 	err = i.state.AddClaimToDB(claimModel)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Trace("saving current identity (with the updated state) to db")
 	err = i.state.SaveIdentity(i.Identifier.String())
 	if err != nil {
 		return nil, err
@@ -218,12 +241,17 @@ func (i *Identity) AddClaim(cReq *issuer_contract.CreateClaimRequest) (*issuer_c
 }
 
 func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error) {
+	logger.Debug("GetClaim() invoked")
+
 	claimModel, err := i.state.Claims.GetClaim([]byte(id))
 	if err != nil {
 		return nil, err
 	}
 
 	c, err := claim.ClaimModelToIden3Credential(claimModel)
+	if err != nil {
+		return nil, err
+	}
 
 	res := issuer_contract.GetClaimResponse(c)
 
@@ -231,6 +259,8 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 }
 
 func (i *Identity) GetIdentity() (*issuer_contract.GetIdentityResponse, error) {
+	logger.Debug("GetIdentity() invoked")
+
 	stateHash, err := i.state.GetStateHash()
 	if err != nil {
 		return nil, err
@@ -251,6 +281,8 @@ func (i *Identity) GetIdentity() (*issuer_contract.GetIdentityResponse, error) {
 }
 
 func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevocationStatusResponse, error) {
+	logger.Debug("GetRevocationStatus() invoked")
+
 	rID := new(big.Int).SetUint64(nonce)
 
 	res := &issuer_contract.GetRevocationStatusResponse{}
