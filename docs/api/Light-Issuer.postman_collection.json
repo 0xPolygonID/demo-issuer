@@ -11,7 +11,7 @@
 			"item": [
 				{
 					"name": "fetch credential",
-					"event": [
+i					"event": [
 						{
 							"listen": "test",
 							"script": {

@@ -1,0 +1,8 @@
+version: 2
+tunnels:
+  ljnexmo:
+    proto: http
+    addr: 8111
+  test:
+    proto: http
+    addr: 8112

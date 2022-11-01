@@ -1,4 +1,8 @@
-# demo-issuer
+# Demo Issuer
+
+
+
+
 
 demo-issuer is a simple issuer implemented in Go Programming Language, it provides capabilities like issuing a claim, verifying claims and endpoints to query important data about issued claims.
 
