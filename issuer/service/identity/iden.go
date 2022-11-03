@@ -33,13 +33,28 @@ func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identi
 		baseUrl: hostUrl,
 	}
 
-	err := iden.init()
+	id, authClaimId, err := iden.state.GetIdentityFromDB()
 	if err != nil {
 		return nil, fmt.Errorf("error on identitiy initialization, %v", err)
 	}
 
-	err = iden.state.SaveIdentity(iden.Identifier.String())
-	return iden, err
+	if len(id) > 0 { // case: identity found -> load identity
+		id, err := core.IDFromString(id)
+		if err != nil {
+			return nil, err
+		}
+		iden.Identifier = &id
+
+		authId, err := uuid.Parse(authClaimId)
+		if err != nil {
+			return nil, err
+		}
+		iden.authClaimId = authId
+
+		return iden, nil
+	}
+
+	return iden, iden.init()
 }
 
 func (i *Identity) init() error {
@@ -86,7 +101,8 @@ func (i *Identity) init() error {
 		return err
 	}
 	i.authClaimId = authClaimModel.ID
-	return err
+
+	return i.state.SaveIdentity(identifier, authClaimModel.ID)
 }
 
 func (i *Identity) setupGenesisState() (*core.ID, *core.Claim, error) {
@@ -245,12 +261,6 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
-	logger.Trace("saving current identity (with the updated state) to db")
-	err = i.state.SaveIdentity(i.Identifier.String())
-	if err != nil {
-		return nil, err
-	}
-
 	return &issuer_contract.CreateClaimResponse{ID: claimModel.ID.String()}, nil
 }
 
@@ -272,7 +282,7 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 		return nil, err
 	}
 
-	res := issuer_contract.GetClaimResponse(*c)
+	res := issuer_contract.GetClaimResponse(c)
 
 	return &res, nil
 }

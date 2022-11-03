@@ -5,7 +5,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"github.com/ugorji/go/codec"
 	"go.etcd.io/bbolt"
-	"issuer/db/models"
 	"issuer/service/claim"
 )
 
@@ -14,7 +13,7 @@ var (
 	ClaimsBucketName   = []byte("claims")
 	IdentityBucketName = []byte("identities")
 	ErrKeyNotFound     = fmt.Errorf("key not found")
-	IdentityKey        = []byte("identity") // TODO: probably needs to be removed
+	IdentityKey        = []byte("identity_key") // TODO: probably needs to be removed
 )
 
 type DB struct {
@@ -57,29 +56,37 @@ func (db *DB) GetConnection() *bbolt.DB {
 	return db.conn
 }
 
-func (db *DB) GetIdentity() (*models.Identity, error) {
-	res := &models.Identity{}
+//func (db *DB) GetIdentity() (string, string, error) {
+//	var res string
+//
+//	return res, db.conn.View(func(tx *bbolt.Tx) error {
+//		b := tx.Bucket(IdentityBucketName)
+//
+//		if val := b.Get(IdentityKey); val != nil {
+//			return codec.NewDecoderBytes(val, &jsonHandle).Decode(res)
+//		}
+//
+//		return ErrKeyNotFound
+//	})
+//}
 
-	return res, db.conn.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(IdentityBucketName)
+//func (db *DB) GetIdentity() (*models.Identity, error) {
+//	res := &models.Identity{}
+//
+//	return res, db.conn.View(func(tx *bbolt.Tx) error {
+//		b := tx.Bucket(IdentityBucketName)
+//
+//		if val := b.Get(IdentityKey); val != nil {
+//			return codec.NewDecoderBytes(val, &jsonHandle).Decode(res)
+//		}
+//
+//		return ErrKeyNotFound
+//	})
+//}
 
-		if val := b.Get(IdentityKey); val != nil {
-			return codec.NewDecoderBytes(val, &jsonHandle).Decode(res)
-		}
-
-		return ErrKeyNotFound
-	})
-}
-
-func (db *DB) SaveIdentity(iden *models.Identity) error {
-	idenB := make([]byte, 0)
-	err := codec.NewEncoderBytes(&idenB, &jsonHandle).Encode(iden)
-	if err != nil {
-		return err
-	}
-
+func (db *DB) SaveIdentity(id, authClaimId []byte) error {
 	return db.conn.Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket(IdentityBucketName).Put(IdentityKey, idenB)
+		return tx.Bucket(IdentityBucketName).Put(id, authClaimId)
 	})
 }
 
@@ -141,4 +148,34 @@ func (db *DB) GetAllClaims() ([]claim.Claim, error) {
 			return nil
 		})
 	})
+}
+
+func (db *DB) GetSavedIdentity() (string, string, error) {
+	var id string
+	var authClaimId string
+
+	err := db.conn.View(func(tx *bbolt.Tx) error {
+
+		b := tx.Bucket(IdentityBucketName)
+
+		return b.ForEach(func(k, v []byte) error {
+
+			err := codec.NewDecoderBytes(v, &jsonHandle).Decode(id)
+			if err != nil {
+				return err
+			}
+
+			err = codec.NewDecoderBytes(v, &jsonHandle).Decode(authClaimId)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	})
+	if err != nil {
+		return "", "", err
+	}
+
+	return id, authClaimId, nil
 }

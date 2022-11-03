@@ -1,11 +1,11 @@
 package state
 
 import (
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 	logger "github.com/sirupsen/logrus"
 	"issuer/db"
-	"issuer/db/models"
 	"issuer/service/claim"
 )
 
@@ -42,19 +42,19 @@ func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
 	}, nil
 }
 
-func (is *IdentityState) SaveIdentity(identifier string) error {
-	state, err := is.GetStateHash()
-	if err != nil {
-		return err
-	}
+func (is *IdentityState) SaveIdentity(identifier *core.ID, authClaimId uuid.UUID) error {
 
-	return is.db.SaveIdentity(&models.Identity{
-		Identifier:         identifier,
-		RootOfRoots:        is.Roots.Tree.Root().Hex(),
-		RevocationTreeRoot: is.Revocations.Tree.Root().Hex(),
-		ClaimsTreeRoot:     is.Claims.Tree.Root().Hex(),
-		State:              state.Hex(),
-	})
+	id := identifier.Bytes()
+	authId := []byte(authClaimId.String())
+
+	return is.db.SaveIdentity(id, authId)
+
+}
+
+func (is *IdentityState) GetIdentityFromDB() (string, string, error) {
+	logger.Debug("IdentityState.GetIdentityFromDB() invoked")
+
+	return is.db.GetSavedIdentity()
 }
 
 func (is *IdentityState) AddClaimToTree(c *core.Claim) error {

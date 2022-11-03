@@ -1,10 +1,10 @@
-issuer/service/contract/get_claim_res.gopackage contract
+package contract
 
 import (
 	"github.com/iden3/go-schema-processor/verifiable"
 )
 
-type GetClaimResponse verifiable.Iden3Credential
+type GetClaimResponse *verifiable.Iden3Credential
 
 //type Iden3Credential struct {
 //	ID                string                 `json:"id"`
