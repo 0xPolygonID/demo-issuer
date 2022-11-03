@@ -1,4 +1,6 @@
 package cfgs
+package cfgs
+package cfgs
 
 type IssuerConfig struct {
 	LogLevel    string `mapstructure:"LOG_LEVEL" yaml:"log_level"`
@@ -18,7 +20,7 @@ type Http struct {
 }
 
 type Identity struct {
-	SecretKey       []byte `mapstructure:"SECRET_KEY" yaml:"secret_key"`
+	SecretKey       string `mapstructure:"SECRET_KEY" yaml:"secret_key"`
 	MerkleTreeDepth int    `mapstructure:"MERKLE_TREE_DEPTH" yaml:"merkle_tree_depth"`
 	//IdentityHostUrl string `mapstructure:"IDENTITY_HOST_URL" yaml:"identity_host_url"`
 }

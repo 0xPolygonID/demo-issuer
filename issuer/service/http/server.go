@@ -119,9 +119,9 @@ func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
 	// convert to biz-model
 
 	// call issuer add claim
-	res, err := s.issuer.AddClaim(req)
+	res, err := s.issuer.CreateClaim(req)
 	if err != nil {
-		logger.Errorf("Server -> issuer.AddClaim() return err, err: %v", err)
+		logger.Errorf("Server -> issuer.CreateClaim() return err, err: %v", err)
 		http2.EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't parse claim id param - %v", err))
 		return
 	}
@@ -142,7 +142,7 @@ func (s *Server) getClaim(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.issuer.GetClaim(claimID)
 	if err != nil {
-		logger.Errorf("Server -> issuer.AddClaim() return err, err: %v", err)
+		logger.Errorf("Server -> issuer.CreateClaim() return err, err: %v", err)
 		http2.EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get claim %s, err: %v", claimID, err))
 		return
 	}

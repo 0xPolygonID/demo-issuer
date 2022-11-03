@@ -47,6 +47,7 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
+	// sepcific to the use case - need to change it
 	if basicMessage.Type != protocol.CredentialFetchRequestMessageType {
 		return nil, fmt.Errorf("unsupported protocol message type")
 	}
@@ -62,7 +63,18 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
-	c, err := comm.idenState.Claims.GetClaim([]byte(fetchRequestBody.ID))
+	fmt.Printf("Agent.Handle() - GetClaim() with Id %s\n", fetchRequestBody.ID)
+	//idHexB, err := hex.DecodeString(fetchRequestBody.ID)										// changed back to uuid
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	claimID, err := uuid.Parse(fetchRequestBody.ID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid claim id in fetch request body, err: %v", err)
+	}
+
+	c, err := comm.idenState.Claims.GetClaim([]byte(claimID.String()))
 	if err != nil {
 		return nil, err
 	}

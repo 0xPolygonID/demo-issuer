@@ -1,3 +1,4 @@
+package service
 package handler
 
 import (
@@ -31,6 +32,7 @@ type Handler struct {
 	cfg *cfgs.IssuerConfig
 }
 
+// sending sign in request to the client (move it to the issuer backend (identity))
 func (h *Handler) GetQR(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Backend.GetQR() invoked")
 
@@ -90,6 +92,7 @@ func (h *Handler) GetQR(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// Handle the sign in response from the user
 // Callback works with sign-in callbacks
 func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Backend.Callback() invoked")
@@ -124,7 +127,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 
 		arm, err := verifier.FullVerify(r.Context(), string(tokenBytes), authRequest.(protocol.AuthorizationRequestMessage))
-		if err != nil {
+		if err != nil { // if enter here, the verification is result is false
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

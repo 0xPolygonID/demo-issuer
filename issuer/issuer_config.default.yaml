@@ -4,12 +4,12 @@ log_level: trace
 db_file_path: issuer.db
 circuit_path: circuits/
 key_dir: backend/keys
-host_url: https://4d07-46-121-236-194.eu.ngrok.io
-issuer_url: https://7330-46-121-236-194.eu.ngrok.io
+host_url: https://10c0-46-121-236-194.eu.ngrok.io
+issuer_url: https://6f2f-46-121-236-194.eu.ngrok.io
 http:
   host: '0.0.0.0'
   port: 8001
 
 identity:
-  secret_key: [48,35,125,91,136,34,33,104,95,41,38,54,28,167,232,31,18,53,213,250,239,2,188,251,249,159,69,151,24,191,217,82]
+  secret_key: 30237d5b882221685f2926361ca7e81f1235d5faef02bcfbf99f459718bfd952
   merkle_tree_depth: 32

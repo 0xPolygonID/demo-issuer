@@ -9,12 +9,17 @@ const Page = () => {
   const userID = router.query.userID;
 
   let qrData;
+  console.log("claimId on the frontend " + claimID);
 
   if (typeof claimID === "string" && typeof userID === "string") {
     qrData = makeAgeClaimData(claimID, userID);
   }
 
-  return (
+    console.log("qrData {}", qrData);
+    console.log("Qrcode ", JSON.stringify(qrData));
+    console.log(qrData);
+
+    return (
     <Layout>
       <Flex
         sx={{

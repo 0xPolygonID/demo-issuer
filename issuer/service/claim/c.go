@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
@@ -12,7 +13,6 @@ import (
 	"issuer/service/schema"
 	"issuer/service/utils"
 	"math/big"
-	"strings"
 	"time"
 )
 
@@ -28,7 +28,7 @@ var (
 )
 
 type Claim struct {
-	ID              []byte
+	ID              uuid.UUID
 	Identifier      string
 	Issuer          string
 	SchemaHash      string
@@ -145,7 +145,6 @@ func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*Cl
 		RevNonce:        claim.GetRevocationNonce(),
 		CoreClaim:       claim,
 		HIndex:          hindex.String(),
-		ID:              hindex.Bytes(),
 	}
 
 	return &res, nil
@@ -176,24 +175,29 @@ func CreateCredentialStatus(urlBase string, sType verifiable.CredentialStatusTyp
 	return b, nil
 }
 
-func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
-	hashIndex, hashValue, err := claim.CoreClaim.HiHv()
+func SignClaimEntry(claim *core.Claim, signFunc func(z *big.Int) ([]byte, error)) (string, error) {
+	hashIndex, hashValue, err := claim.HiHv()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	commonHash, err := poseidon.Hash([]*big.Int{hashIndex, hashValue})
 	if err != nil {
-		return nil, err
-	}
-
-	issuerMTP := &verifiable.Iden3SparseMerkleProof{}
-	err = json.Unmarshal(claim.MTPProof, issuerMTP)
-	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	sig, err := signFunc(commonHash)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(sig), nil
+}
+
+func ConstructSigProof(authClaim *Claim, sig string) (*verifiable.Iden3SparseMerkleProof, error) {
+
+	authMTP := &verifiable.Iden3SparseMerkleProof{}
+	err := json.Unmarshal(authClaim.MTPProof, authMTP)
 	if err != nil {
 		return nil, err
 	}
@@ -201,12 +205,44 @@ func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*v
 	// followed https://w3c-ccg.github.io/ld-proofs/
 	proof := verifiable.BJJSignatureProof2021{}
 	proof.Type = BabyJubSignatureType
-	proof.Signature = hex.EncodeToString(sig)
-	issuerMTP.IssuerData.AuthClaim = claim.CoreClaim
-	proof.IssuerData = issuerMTP.IssuerData
+	proof.Signature = sig // sig -string
+	authMTP.IssuerData.AuthClaim = authClaim.CoreClaim
+	proof.IssuerData = authMTP.IssuerData
 
-	return &proof, nil
+	return authMTP, nil
 }
+
+//func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
+//	hashIndex, hashValue, err := claim.CoreClaim.HiHv()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	commonHash, err := poseidon.Hash([]*big.Int{hashIndex, hashValue})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	issuerMTP := &verifiable.Iden3SparseMerkleProof{}
+//	err = json.Unmarshal(claim.MTPProof, issuerMTP)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	sig, err := signFunc(commonHash)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	// followed https://w3c-ccg.github.io/ld-proofs/
+//	proof := verifiable.BJJSignatureProof2021{}
+//	proof.Type = BabyJubSignatureType
+//	proof.Signature = hex.EncodeToString(sig)
+//	issuerMTP.IssuerData.AuthClaim = claim.CoreClaim
+//	proof.IssuerData = issuerMTP.IssuerData
+//
+//	return &proof, nil
+//}
 
 func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) {
 	claimIdPos, err := getClaimIdPosition(c.CoreClaim)
@@ -228,22 +264,13 @@ func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) 
 	proofs := make([]interface{}, 0)
 
 	signatureProof := &verifiable.BJJSignatureProof2021{}
-	if c.SignatureProof != nil && string(c.CredentialStatus) != "{}" {
+	if c.SignatureProof != nil {
 		err = json.Unmarshal(c.SignatureProof, signatureProof)
 		if err != nil {
 			return nil, err
 		}
 
 		proofs = append(proofs, signatureProof)
-	}
-
-	mtpProof := &verifiable.Iden3SparseMerkleProof{}
-	if !strings.EqualFold(string(c.MTPProof), "{}") {
-		err = json.Unmarshal(c.MTPProof, mtpProof)
-		if err != nil {
-			return nil, err
-		}
-		proofs = append(proofs, mtpProof)
 	}
 
 	// create credential status object
@@ -256,7 +283,7 @@ func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) 
 	}
 
 	res := &verifiable.Iden3Credential{
-		ID:         string(c.ID),
+		ID:         c.ID.String(),
 		Type:       []string{schema.Iden3CredentialSchema},
 		Expiration: time.Unix(c.Expiration, 0),
 		RevNonce:   c.RevNonce,

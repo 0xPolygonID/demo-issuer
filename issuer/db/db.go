@@ -116,13 +116,10 @@ func (db *DB) SaveClaim(c *claim.Claim) error {
 		return err
 	}
 
-	claimId, err := c.CoreClaim.HIndex()
-	if err != nil {
-		return err
-	}
+	claimIdBytes := []byte(c.ID.String())
 
 	return db.conn.Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket(ClaimsBucketName).Put(claimId.Bytes(), claimB)
+		return tx.Bucket(ClaimsBucketName).Put(claimIdBytes, claimB)
 	})
 }
 

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/hex"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
 	"issuer/cfgs"
@@ -39,8 +40,14 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
+	logger.Info("processing secret key")
+	sk, err := secretKeyToBabyJub(cfg.Identity.SecretKey)
+	if err != nil {
+		return err
+	}
+
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.Identity.SecretKey), cfg.IssuerUrl)
+	issuer, err := identity.New(idenState, sk, cfg.IssuerUrl)
 	if err != nil {
 		return err
 	}
@@ -54,11 +61,15 @@ func CreateApp(altCfgPath string) error {
 	return s.Run()
 }
 
-func bytesToJubjubKey(b []byte) babyjub.PrivateKey {
+func secretKeyToBabyJub(sk string) (babyjub.PrivateKey, error) {
+	b, err := hex.DecodeString(sk)
+	if err != nil {
+		return babyjub.PrivateKey{}, err
+	}
 	var privKey babyjub.PrivateKey
 	copy(privKey[:], b)
 
-	return privKey
+	return privKey, nil
 }
 
 func initGlobalLogger(level string) error {

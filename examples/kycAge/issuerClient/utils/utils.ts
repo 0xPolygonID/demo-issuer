@@ -60,4 +60,5 @@ export const makeClaimRequest = (userID:string) => {
     data : data
   }
 
-return config};
+    return config
+};
