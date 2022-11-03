@@ -2,23 +2,26 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-This project is a light weight implementation of the issuer with several examples use cases to give a better understand of capabilities of PolygonID.
+This project is a light weight implementation of the issuer with several examples use cases to simple demonstrate the different building block of PolygonID and how to build and end to end process of issuance to verification in the simplest terms. This project is strictly for education purposes.
 
-You can find further information on our [associated documentation](https://demoissuer.gitbook.io/demoissuer/)
+You can find further information on our [offical documentation](https://demoissuer.gitbook.io/demoissuer/).
 
 
 ## Usage
 
 ### Prerequisites
-
 - Golang
 - Ngrok
-- CMake
 
 
-### Running the demo issuer
 
-### Running the demo
+### Run the Demo Issuer
+
+### Run the clients
+
+### Run the Verifier
+
+### Run the Age KYC end to end flow 
 
 ## Contributions
 

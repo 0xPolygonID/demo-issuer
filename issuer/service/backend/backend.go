@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"io"
-	"issuer/cfgs"
+	"issuer/service/cfgs"
 	"log"
 	"math/rand"
 	"net/http"
