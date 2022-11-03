@@ -6,6 +6,7 @@ type IssuerConfig struct {
 	CircuitPath string `mapstructure:"CIRCUIT_PATH" yaml:"circuit_path"`
 	KeyDir      string `mapstructure:"KEY_DIR" yaml:"key_dir"`
 	HostUrl     string `mapstructure:"HOST_URL" yaml:"host_url"`
+	IssuerUrl   string `mapstructure:"ISSUER_URL" yaml:"issuer_url"`
 
 	Http     Http     `mapstructure:"HTTP" yaml:"http"`
 	Identity Identity `mapstructure:"IDENTITY" yaml:"identity"`

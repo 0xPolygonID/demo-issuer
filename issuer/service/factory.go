@@ -40,7 +40,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.Identity.SecretKey), cfg.HostUrl)
+	issuer, err := identity.New(idenState, bytesToJubjubKey(cfg.Identity.SecretKey), cfg.IssuerUrl)
 	if err != nil {
 		return err
 	}

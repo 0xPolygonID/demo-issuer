@@ -1,13 +1,40 @@
 # Demo Issuer
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
+This project is a light weight implementation of the issuer with several examples use cases to give a better understand of capabilities of PolygonID.
+
+You can find further information on our [associated documentation](https://demoissuer.gitbook.io/demoissuer/)
 
 
+## Usage
+
+### Prerequisites
+
+- Golang
+- Ngrok
+- CMake
 
 
-demo-issuer is a simple issuer implemented in Go Programming Language, it provides capabilities like issuing a claim, verifying claims and endpoints to query important data about issued claims.
+### Running the demo issuer
 
-### Gitbook
+### Running the demo
 
-demo-issuer has a Gitbook, which can be refereed to get started with it and is recommended, it has an introduction to the demo-issuer, specification & examples on its API, and how to make applications with it.
+## Contributions
 
-Here is the Link for it -> [https://demoissuer.gitbook.io/demoissuer/](https://demoissuer.gitbook.io/demoissuer/)
+## License
+
+Demo Issuer is released under the terms of the AGPL-3.0 license. See [LICENSE](LICENSE) for more information.
+
+## A word of caution
+This project was created primarily for education purposes. You should **NOT USE THIS CODE IN PRODUCTION SYSTEMS**.
+
+
+## References
+
+[1] Iden3 repos
+
+[2] Iden3 docs
+
+[3] polygon docs
+
