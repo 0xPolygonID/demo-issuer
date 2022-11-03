@@ -21,7 +21,7 @@ import (
 type Identity struct {
 	sk          babyjub.PrivateKey
 	Identifier  *core.ID
-	authClaimId uuid.UUID
+	authClaimId *uuid.UUID
 	state       *state.IdentityState
 	baseUrl     string
 }
@@ -39,18 +39,8 @@ func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identi
 	}
 
 	if len(id) > 0 { // case: identity found -> load identity
-		id, err := core.IDFromString(id)
-		if err != nil {
-			return nil, err
-		}
-		iden.Identifier = &id
-
-		authId, err := uuid.Parse(authClaimId)
-		if err != nil {
-			return nil, err
-		}
-		iden.authClaimId = authId
-
+		iden.Identifier = id
+		iden.authClaimId = authClaimId
 		return iden, nil
 	}
 
@@ -100,7 +90,7 @@ func (i *Identity) init() error {
 	if err != nil {
 		return err
 	}
-	i.authClaimId = authClaimModel.ID
+	i.authClaimId = &authClaimModel.ID
 
 	return i.state.SaveIdentity(identifier, authClaimModel.ID)
 }

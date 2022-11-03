@@ -150,9 +150,9 @@ func (db *DB) GetAllClaims() ([]claim.Claim, error) {
 	})
 }
 
-func (db *DB) GetSavedIdentity() (string, string, error) {
-	var id string
-	var authClaimId string
+func (db *DB) GetSavedIdentity() ([]byte, []byte, error) {
+	var id []byte
+	var authClaimId []byte
 
 	err := db.conn.View(func(tx *bbolt.Tx) error {
 
@@ -160,21 +160,14 @@ func (db *DB) GetSavedIdentity() (string, string, error) {
 
 		return b.ForEach(func(k, v []byte) error {
 
-			err := codec.NewDecoderBytes(v, &jsonHandle).Decode(id)
-			if err != nil {
-				return err
-			}
-
-			err = codec.NewDecoderBytes(v, &jsonHandle).Decode(authClaimId)
-			if err != nil {
-				return err
-			}
+			id = k
+			authClaimId = v
 
 			return nil
 		})
 	})
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
 	return id, authClaimId, nil

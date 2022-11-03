@@ -51,10 +51,28 @@ func (is *IdentityState) SaveIdentity(identifier *core.ID, authClaimId uuid.UUID
 
 }
 
-func (is *IdentityState) GetIdentityFromDB() (string, string, error) {
+func (is *IdentityState) GetIdentityFromDB() (*core.ID, *uuid.UUID, error) {
 	logger.Debug("IdentityState.GetIdentityFromDB() invoked")
 
-	return is.db.GetSavedIdentity()
+	id, authClaimId, err := is.db.GetSavedIdentity()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if id == nil {
+		return nil, nil, nil
+	}
+	coreId, err := core.IDFromBytes(id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	claimId, err := uuid.Parse(string(authClaimId))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &coreId, &claimId, nil
 }
 
 func (is *IdentityState) AddClaimToTree(c *core.Claim) error {
