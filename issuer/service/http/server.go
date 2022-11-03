@@ -10,6 +10,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"io"
 	http2 "issuer/http"
+	"issuer/service/backend"
 	"issuer/service/command"
 	"issuer/service/contract"
 	"issuer/service/identity"
@@ -22,9 +23,10 @@ type Server struct {
 	address     string
 	issuer      *identity.Identity
 	commHandler *command.Handler
+	backend     *backend.Handler
 }
 
-func NewServer(host, port string, issuer *identity.Identity, commHandler *command.Handler) *Server {
+func NewServer(host, port string, issuer *identity.Identity, commHandler *command.Handler, backend *backend.Handler) *Server {
 
 	serviceAddress := host + ":" + port
 
@@ -32,6 +34,7 @@ func NewServer(host, port string, issuer *identity.Identity, commHandler *comman
 		address:     serviceAddress,
 		issuer:      issuer,
 		commHandler: commHandler,
+		backend:     backend,
 	}
 }
 
@@ -87,6 +90,17 @@ func (s *Server) newRouter() chi.Router {
 		root.Route("/agent", func(agent chi.Router) {
 			agent.Post("/", s.getAgent)
 		})
+
+		root.Route("/sign-in", func(agent chi.Router) {
+			agent.Get("/", s.backend.GetQR)
+		})
+		root.Route("/callback", func(agent chi.Router) {
+			agent.Post("/", s.backend.Callback)
+		})
+		root.Route("/status", func(agent chi.Router) {
+			agent.Get("/", s.backend.Status)
+		})
+
 	})
 
 	return r

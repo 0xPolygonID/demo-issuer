@@ -1,17 +1,16 @@
-package service
-package handler
+package backend
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/iden3/go-circuits"
-	"github.com/iden3/go-iden3-auth"
+	auth "github.com/iden3/go-iden3-auth"
 	"github.com/iden3/go-iden3-auth/loaders"
 	"github.com/iden3/go-iden3-auth/pubsignals"
 	"github.com/iden3/go-iden3-auth/state"
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"io"
 	"issuer/cfgs"
@@ -21,6 +20,10 @@ import (
 	"strconv"
 	"time"
 )
+
+// TODO:
+// 1. Update the new key dir direction to the new location
+// 2. Update the url to callback, only issuer url is relevant
 
 var cacheStorage = cache.New(60*time.Minute, 60*time.Minute)
 

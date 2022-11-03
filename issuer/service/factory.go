@@ -6,6 +6,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"issuer/cfgs"
 	database "issuer/db"
+	"issuer/service/backend"
 	"issuer/service/command"
 	"issuer/service/http"
 	"issuer/service/identity"
@@ -53,9 +54,9 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	commHandler := command.NewHandler(idenState, cfg.CircuitPath)
-
+	backendHandler := backend.NewHandler(cfg)
 	// start service
-	s := http.NewServer(cfg.Http.Host, cfg.Http.Port, issuer, commHandler)
+	s := http.NewServer(cfg.Http.Host, cfg.Http.Port, issuer, commHandler, backendHandler)
 
 	logger.Infof("spining up API server @%s", cfg.Http.Host+":"+cfg.Http.Port)
 	return s.Run()
