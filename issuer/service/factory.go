@@ -55,6 +55,7 @@ func CreateApp(altCfgPath string) error {
 
 	commHandler := command.NewHandler(idenState, cfg.CircuitPath)
 	backendHandler := backend.NewHandler(cfg)
+
 	// start service
 	s := http.NewServer(cfg.Http.Host, cfg.Http.Port, issuer, commHandler, backendHandler)
 
