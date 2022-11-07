@@ -41,7 +41,7 @@ func (h *Handler) GetQR(w http.ResponseWriter, r *http.Request) {
 
 	sessionID := rand.Intn(1000000)
 
-	hostUrl := h.cfg.HostUrl
+	hostUrl := h.cfg.PublicUrl
 	if len(hostUrl) == 0 {
 		log.Fatal("host-url is not set")
 	}

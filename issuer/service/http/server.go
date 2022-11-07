@@ -26,12 +26,10 @@ type Server struct {
 	backend     *backend.Handler
 }
 
-func NewServer(host, port string, issuer *identity.Identity, commHandler *command.Handler, backend *backend.Handler) *Server {
-
-	serviceAddress := host + ":" + port
-
+func NewServer(localHostAdd string, issuer *identity.Identity, commHandler *command.Handler, backend *backend.Handler) *Server {
+	
 	return &Server{
-		address:     serviceAddress,
+		address:     localHostAdd,
 		issuer:      issuer,
 		commHandler: commHandler,
 		backend:     backend,

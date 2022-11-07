@@ -5,15 +5,18 @@ import { useRouter } from "next/router";
 import { Container, Flex, Heading, Paragraph, Spinner } from "theme-ui";
 import { Layout, QRCode } from "../components";
 
-const Page = () => {
+const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const [loading, setLoading] = useState(true);
   const [qrData, setQRData] = useState({});
+
+  console.log("frotend log, Issuer Public Url:", props.issuerPublicUrl);
+  console.log("frotend log, Issuer Local Url:", props.issuerLocalUrl);
 
   const router = useRouter();
 
   useEffect(() => {
     (async () => {
-      const resp = await axios.get("http://localhost:3000/api/sign-in");
+      const resp = await axios.get(props.issuerLocalUrl + "/api/sign-in");
 
       setQRData(resp.data);
       setLoading(false);
@@ -21,7 +24,7 @@ const Page = () => {
       const sessionID = resp.headers["x-id"];
 
       const interval = setInterval(async () => {
-        const resp = await checkAuthStatus(sessionID);
+        const resp = await checkAuthStatus(sessionID, props);
         if (resp) {
           clearInterval(interval);
           router.push(`/client?claimID=${resp.claimID}&userID=${resp.userID}`);
@@ -61,5 +64,28 @@ const Page = () => {
     </Container>
   );
 };
+
+
+export async function getServerSideProps(context) {
+  const yaml = require('js-yaml');
+  const fs = require('fs');
+
+  let  issuerPublicUrl = "";
+  let  issuerLocalUrl = "";
+
+
+  try {
+    const doc = yaml.load(fs.readFileSync('./../../../issuer/issuer_config.default.yaml', 'utf8'));
+    issuerPublicUrl = doc.public_url;
+    issuerLocalUrl = doc.local_url;
+  } catch (e) {
+    console.log("encounter error on load config file, err: " + e);
+    process.exit(1);
+  }
+
+  return {
+    props: {issuerPublicUrl: issuerPublicUrl, issuerLocalUrl: issuerLocalUrl },
+  }
+}
 
 export default Page;

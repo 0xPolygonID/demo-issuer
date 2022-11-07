@@ -1,8 +1,9 @@
 import type { AppProps } from "next/app";
 import { ThemeProvider, Image } from "theme-ui";
 import theme from "../utils/theme";
+import {Component} from "react";
 
-function MyApp({ Component, pageProps }: AppProps) {
+function MyApp({Component, pageProps}: AppProps) {
   return (
     <ThemeProvider theme={theme}>
       <Component {...pageProps} />

@@ -48,7 +48,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, sk, cfg.IssuerUrl)
+	issuer, err := identity.New(idenState, sk, cfg.PublicUrl)
 	if err != nil {
 		return err
 	}
@@ -57,9 +57,9 @@ func CreateApp(altCfgPath string) error {
 	backendHandler := backend.NewHandler(cfg)
 
 	// start service
-	s := http.NewServer(cfg.Http.Host, cfg.Http.Port, issuer, commHandler, backendHandler)
+	s := http.NewServer(cfg.LocalUrl, issuer, commHandler, backendHandler)
 
-	logger.Infof("spining up API server @%s", cfg.Http.Host+":"+cfg.Http.Port)
+	logger.Infof("spining up API server @%s", cfg.LocalUrl)
 	return s.Run()
 }
 
