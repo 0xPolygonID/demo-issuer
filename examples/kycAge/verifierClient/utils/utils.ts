@@ -36,7 +36,7 @@ export const makeAgeClaimData = (claimID:string, userID:string) => {
   to: issuerID
 }}
 
-export const makeClaimRequest = (userID:string) => { 
+export const makeClaimRequest = (userID:string, props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
     
     const data = JSON.stringify({
     "identifier": userID,
@@ -53,7 +53,7 @@ export const makeClaimRequest = (userID:string) => {
   
   const config = {
     method: 'post',
-    url: 'http://localhost:8001/api/v1/claims',
+    url: props.issuerLocalUrl +'/api/v1/claims',
     headers: { 
       'Content-Type': 'application/json'
     },
