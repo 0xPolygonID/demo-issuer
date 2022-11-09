@@ -9,24 +9,45 @@ You can find further information on our [associated documentation](https://demoi
 ## Usage
 
 ### Prerequisites
-- Golang
-- Ngrok
+- [Golang](https://go.dev/doc/install)
+- [Ngrok](https://ngrok.com/download)
+- [Make](https://www.gnu.org/software/make/)*
+- [Yarn](https://classic.yarnpkg.com/)*
+- [Npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)*
 
+*used only in the KYC demo
 
+### Run the Age KYC demo
 
-### Run the Demo Issuer
+- Run ```make``` on the root of the repo to run the age KYC demo.
+- Follow the instructions on the screen.
 
-### Run the clients
+### Run the Demo Issuer separately
 
-### Run the Verifier
+- Setup the configuration in the [config file](issuer/issuer_config.default.yaml).
+- Run the demo issuer with ```go run cmd/issuer/main.go``` from the [/issuer](issuer) directory.
 
-### Run the Age KYC end to end flow 
+[//]: # (### Run issuer/verifier webpage separately )
+
+[//]: # (- Setup the configuration in the [config file]&#40;issuer/issuer_config.default.yaml&#41;.)
+
+[//]: # (- The following steps should be executed for the [issuer-webpage]&#40;examples/kycAge/issuerClient&#41; and [verifier-webpage]&#40;examples/kycAge/verifierClient&#41; separately:)
+
+[//]: # (  - Run ```yarn``` to install all dependencies)
+
+[//]: # (  - Run the ```yarn dev```)
+
+[//]: # (  - Open browser on deployed address &#40;[localhost:3001]&#40;https://localhost:3001&#41; for issuer webpage, or [localhost:3002]&#40;https://localhost:3002&#41; for verifier webpage.)
+
 
 ## Contributions
+TBD
+
 
 ## License
 
 Demo Issuer is released under the terms of the AGPL-3.0 license. See [LICENSE](LICENSE) for more information.
+
 
 ## A word of caution
 This project was created primarily for education purposes. You should **NOT USE THIS CODE IN PRODUCTION SYSTEMS**.
@@ -34,9 +55,9 @@ This project was created primarily for education purposes. You should **NOT USE 
 
 ## References
 
-[1] Iden3 repos
+[1] [Iden3 repos](https://github.com/orgs/iden3/repositories)
 
-[2] Iden3 docs
+[2] [Iden3 Documentation](https://docs.iden3.io/)
 
-[3] polygon docs
+[3] [PolygonID docs](https://0xpolygonid.github.io/tutorials/)
 
