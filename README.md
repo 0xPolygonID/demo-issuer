@@ -19,8 +19,8 @@ You can find further information on our [associated documentation](https://demoi
 
 ### Run the Age KYC demo
 
-- Run ```make``` on the root of the repo to run the age KYC demo.
-- Follow the instructions on screen.
+- Run ```make -j4``` on the root of the repo to run the age KYC demo.
+- Follow the instructions on screen with the [KYC Demo documentation](https://demoissuer.gitbook.io/demoissuer/kyc-age-demo).
 
 ### Run the Demo Issuer separately
 
