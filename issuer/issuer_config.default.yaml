@@ -2,8 +2,7 @@
 
 log_level: trace
 db_file_path: issuer.db
-circuit_path: circuits/
-key_dir: backend/keys
+key_dir: keys
 
 local_url: '0.0.0.0:8001'
 public_url: https://6f2f-46-121-236-194.eu.ngrok.io

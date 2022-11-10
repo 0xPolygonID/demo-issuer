@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"issuer/service/claim"
+	"issuer/service/command"
+	"issuer/service/communication"
 	issuer_contract "issuer/service/contract"
 	"issuer/service/identity/state"
 	"issuer/service/schema"
@@ -22,13 +24,19 @@ type Identity struct {
 	sk          babyjub.PrivateKey
 	Identifier  *core.ID
 	authClaimId *uuid.UUID
-	state       *state.IdentityState
 	baseUrl     string
+
+	state       *state.IdentityState
+	CmdHandler  *command.Handler
+	CommHandler *communication.Handler
 }
 
-func New(s *state.IdentityState, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
+func New(s *state.IdentityState, cmdHandler *command.Handler, commHandler *communication.Handler, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
 	iden := &Identity{
-		state:   s,
+		state:       s,
+		CmdHandler:  cmdHandler,
+		CommHandler: commHandler,
+
 		sk:      sk,
 		baseUrl: hostUrl,
 	}
@@ -51,7 +59,7 @@ func (i *Identity) init() error {
 	logger.Debug("Identity.init() invoked")
 
 	logger.Debug("setup genesis state")
-	identifier, authClaim, err := i.setupGenesisState()
+	identifier, authClaim, err := i.state.SetupGenesisState(i.sk.Public())
 	if err != nil {
 		return err
 	}
@@ -93,39 +101,6 @@ func (i *Identity) init() error {
 	i.authClaimId = &authClaimModel.ID
 
 	return i.state.SaveIdentity(identifier, authClaimModel.ID)
-}
-
-func (i *Identity) setupGenesisState() (*core.ID, *core.Claim, error) {
-	logger.Trace("getting auth schema hash")
-
-	schemaHash, err := core.NewSchemaHashFromHex(schema.AuthBJJCredentialHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	logger.Trace("creating new auth claim")
-	authClaim, err := claim.NewAuthClaim(i.sk.Public(), schemaHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	logger.Trace("adding auth claim to the claims tree")
-	err = i.state.AddClaimToTree(authClaim)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	currState, err := i.state.GetStateHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	identifier, err := core.IdGenesisFromIdenState(core.TypeDefault, currState.BigInt())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return identifier, authClaim, nil
 }
 
 func (i *Identity) generateProof(claim *core.Claim) ([]byte, error) {
@@ -325,15 +300,15 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 }
 
 // data should be a little-endian bytes representation of *big.Int.
-func (i *Identity) signBytes(data []byte) ([]byte, error) {
-	if len(data) > 32 {
-		return nil, errors.New("data to signBytes is too large")
-	}
-
-	z := new(big.Int).SetBytes(utils.SwapEndianness(data))
-
-	return i.sign(z)
-}
+//func (i *Identity) signBytes(data []byte) ([]byte, error) {
+//	if len(data) > 32 {
+//		return nil, errors.New("data to signBytes is too large")
+//	}
+//
+//	z := new(big.Int).SetBytes(utils.SwapEndianness(data))
+//
+//	return i.sign(z)
+//}
 
 func (i *Identity) sign(z *big.Int) ([]byte, error) {
 	if !utils.CheckBigIntInField(z) {

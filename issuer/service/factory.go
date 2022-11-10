@@ -5,9 +5,9 @@ import (
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
 	database "issuer/db"
-	"issuer/service/backend"
 	"issuer/service/cfgs"
 	"issuer/service/command"
+	"issuer/service/communication"
 	"issuer/service/http"
 	"issuer/service/identity"
 	"issuer/service/identity/state"
@@ -47,17 +47,17 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
+	cmdHandler := command.NewHandler(idenState)
+	commHandler := communication.NewCommunicationHandler(cfg)
+
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, sk, cfg.PublicUrl)
+	issuer, err := identity.New(idenState, cmdHandler, commHandler, sk, cfg.PublicUrl)
 	if err != nil {
 		return err
 	}
 
-	commHandler := command.NewHandler(idenState, cfg.CircuitPath)
-	backendHandler := backend.NewHandler(cfg)
-
 	// start service
-	s := http.NewServer(cfg.LocalUrl, issuer, commHandler, backendHandler)
+	s := http.NewServer(cfg.LocalUrl, issuer)
 
 	logger.Infof("spining up API server @%s", cfg.LocalUrl)
 	return s.Run()

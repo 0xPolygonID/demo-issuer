@@ -3,10 +3,12 @@ package state
 import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql"
 	logger "github.com/sirupsen/logrus"
 	"issuer/db"
 	"issuer/service/claim"
+	"issuer/service/schema"
 )
 
 type IdentityState struct {
@@ -40,6 +42,39 @@ func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
 		Roots:       roots,
 		db:          db,
 	}, nil
+}
+
+func (is *IdentityState) SetupGenesisState(pk *babyjub.PublicKey) (*core.ID, *core.Claim, error) {
+	logger.Trace("getting auth schema hash")
+
+	schemaHash, err := core.NewSchemaHashFromHex(schema.AuthBJJCredentialHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logger.Trace("creating new auth claim")
+	authClaim, err := claim.NewAuthClaim(pk, schemaHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logger.Trace("adding auth claim to the claims tree")
+	err = is.AddClaimToTree(authClaim)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	currState, err := is.GetStateHash()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	identifier, err := core.IdGenesisFromIdenState(core.TypeDefault, currState.BigInt())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return identifier, authClaim, nil
 }
 
 func (is *IdentityState) SaveIdentity(identifier *core.ID, authClaimId uuid.UUID) error {

@@ -35,7 +35,7 @@ func New(altCfgPath string) (*IssuerConfig, error) {
 
 // resolveConfigPath resolves the configuration
 // file path (YAML formatted)
-// It's looking for asset-backend-config.yaml in the current
+// It's looking for asset-communication-config.yaml in the current
 // directory (higher precedence) and then in $HOME/.qed-it (lower precedence)
 func resolveConfigPath(cfgFilePath string) (string, error) {
 	cwd, err := os.Getwd()

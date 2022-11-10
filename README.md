@@ -20,7 +20,7 @@ You can find further information on our [associated documentation](https://demoi
 ### Run the Age KYC demo
 
 - Run ```make``` on the root of the repo to run the age KYC demo.
-- Follow the instructions on the screen.
+- Follow the instructions on screen.
 
 ### Run the Demo Issuer separately
 
