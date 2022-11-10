@@ -30,11 +30,9 @@ type Handler struct {
 // NewIDEN3CommHandler inits IDEN3Comm handler
 func NewHandler(
 	state *state.IdentityState,
-	circuitPath string,
 ) *Handler {
 	return &Handler{
-		circuitPath: circuitPath,
-		idenState:   state,
+		idenState: state,
 	}
 }
 

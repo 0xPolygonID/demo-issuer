@@ -10,8 +10,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"io"
 	http2 "issuer/http"
-	"issuer/service/backend"
-	"issuer/service/command"
 	"issuer/service/contract"
 	"issuer/service/identity"
 	"net/http"
@@ -19,20 +17,16 @@ import (
 )
 
 type Server struct {
-	httpServer  *http.Server
-	address     string
-	issuer      *identity.Identity
-	commHandler *command.Handler
-	backend     *backend.Handler
+	httpServer *http.Server
+	address    string
+	issuer     *identity.Identity
 }
 
-func NewServer(localHostAdd string, issuer *identity.Identity, commHandler *command.Handler, backend *backend.Handler) *Server {
-	
+func NewServer(localHostAdd string, issuer *identity.Identity) *Server {
+
 	return &Server{
-		address:     localHostAdd,
-		issuer:      issuer,
-		commHandler: commHandler,
-		backend:     backend,
+		address: localHostAdd,
+		issuer:  issuer,
 	}
 }
 
@@ -90,13 +84,13 @@ func (s *Server) newRouter() chi.Router {
 		})
 
 		root.Route("/sign-in", func(agent chi.Router) {
-			agent.Get("/", s.backend.GetQR)
+			agent.Get("/", s.issuer.CommHandler.GetAuthRequest)
 		})
 		root.Route("/callback", func(agent chi.Router) {
-			agent.Post("/", s.backend.Callback)
+			agent.Post("/", s.issuer.CommHandler.Callback)
 		})
 		root.Route("/status", func(agent chi.Router) {
-			agent.Get("/", s.backend.Status)
+			agent.Get("/", s.issuer.CommHandler.GetRequestStatus)
 		})
 
 	})
@@ -191,7 +185,7 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := s.commHandler.Handle(bodyB)
+	res, err := s.issuer.CmdHandler.Handle(bodyB)
 	if err != nil {
 		logger.Errorf("Server -> commHandler.Handle() return err, err: %v", err)
 		http2.EncodeResponse(w, http.StatusInternalServerError, "error on handle income request, err: "+err.Error())
