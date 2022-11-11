@@ -7,4 +7,4 @@ identity:
   merkle_tree_depth: 32
 
 local_url: '0.0.0.0:8001'
-public_url: https://3f07-46-121-237-97.eu.ngrok.io
+public_url: https://645b-46-121-237-97.eu.ngrok.io
