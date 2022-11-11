@@ -2,8 +2,9 @@ import { Box, Flex, Heading, Paragraph } from "theme-ui";
 import { useRouter } from "next/router";
 import { makeAgeClaimData } from "../utils/utils";
 import { Layout, QRCode } from "../components";
+import fs from "fs";
 
-const Page = () => {
+const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const router = useRouter();
   const claimID = router.query.claimID;
   const userID = router.query.userID;
@@ -11,10 +12,14 @@ const Page = () => {
   let qrData;
 
   if (typeof claimID === "string" && typeof userID === "string") {
-    qrData = makeAgeClaimData(claimID, userID);
+    qrData = makeAgeClaimData(claimID, userID, props);
   }
 
-  return (
+    console.log("qrData {}", qrData);
+    console.log("Qrcode ", JSON.stringify(qrData));
+    console.log(qrData);
+
+    return (
     <Layout>
       <Flex
         sx={{
@@ -41,5 +46,28 @@ const Page = () => {
     </Layout>
   );
 };
+
+
+export async function getServerSideProps(context) {
+  const yaml = require('js-yaml');
+  const fs = require('fs');
+
+  let  issuerPublicUrl = "";
+  let  issuerLocalUrl = "";
+
+
+  try {
+    const doc = yaml.load(fs.readFileSync('./../../../issuer/issuer_config.default.yaml', 'utf8'));
+    issuerPublicUrl = doc.public_url;
+    issuerLocalUrl = doc.local_url;
+  } catch (e) {
+    console.log("encounter error on load config file, err: " + e);
+    process.exit(1);
+  }
+
+  return {
+    props: {issuerPublicUrl: issuerPublicUrl, issuerLocalUrl: issuerLocalUrl },
+  }
+}
 
 export default Page;

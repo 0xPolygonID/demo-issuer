@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { checkAuthStatus } from "../utils/utils";
+import {checkAuthStatus, makeClaimRequest} from "../utils/utils";
 import { useRouter } from "next/router";
 import { Container, Flex, Heading, Paragraph, Spinner } from "theme-ui";
 import { Layout, QRCode } from "../components";
 
-const Page = () => {
+const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const [loading, setLoading] = useState(true);
   const [qrData, setQRData] = useState({});
 
@@ -13,7 +13,8 @@ const Page = () => {
 
   useEffect(() => {
     (async () => {
-      const resp = await axios.get("http://localhost:3000/api/sign-in");
+
+      const resp = await axios.get("http://" + props.issuerLocalUrl + "/api/v1/sign-in");
 
       setQRData(resp.data);
       setLoading(false);
@@ -21,10 +22,24 @@ const Page = () => {
       const sessionID = resp.headers["x-id"];
 
       const interval = setInterval(async () => {
-        const resp = await checkAuthStatus(sessionID);
-        if (resp) {
-          clearInterval(interval);
-          router.push(`/client?claimID=${resp.claimID}&userID=${resp.userID}`);
+        try {
+
+          const resp = await axios.get("http://" + props.issuerLocalUrl + `/api/v1/status?id=${sessionID}`);
+          console.log('Here', resp.data);
+
+          if (resp) {
+            const userID = resp.data.id
+            if (userID) {
+
+              const respMakeClaim = await axios(makeClaimRequest(userID, props));
+              // TODO: Error Handling
+              const claimID = respMakeClaim.data.id ? respMakeClaim.data.id : "";
+              clearInterval(interval);
+              router.push(`/client?claimID=${claimID}&userID=${userID}`);
+            }
+          }
+        } catch (e) {
+          console.log('err->', e);
         }
       }, 2000);
     })();
@@ -61,5 +76,28 @@ const Page = () => {
     </Container>
   );
 };
+
+
+export async function getServerSideProps(context) {
+  const yaml = require('js-yaml');
+  const fs = require('fs');
+
+  let issuerPublicUrl = "";
+  let issuerLocalUrl = "";
+
+  try {
+    const doc = yaml.load(fs.readFileSync('./../../../issuer/issuer_config.default.yaml', 'utf8'));
+    issuerPublicUrl = doc.public_url;
+    issuerLocalUrl = doc.local_url;
+
+  } catch (e) {
+    console.log("encounter error on load config file, err: " + e);
+    process.exit(1);
+  }
+
+  return {
+    props: {issuerPublicUrl: issuerPublicUrl, issuerLocalUrl: issuerLocalUrl },
+  }
+}
 
 export default Page;

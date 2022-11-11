@@ -1,0 +1,10 @@
+log_level: trace
+db_file_path: issuer.db
+key_dir: keys
+ipfs_url: ipfs.io
+identity:
+  secret_key: 30237d5b882221685f2926361ca7e81f1235d5faef02bcfbf99f459718bfd952
+  merkle_tree_depth: 32
+
+local_url: '0.0.0.0:8001'
+public_url: https://3f07-46-121-237-97.eu.ngrok.io

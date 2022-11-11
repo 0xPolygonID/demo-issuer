@@ -5,8 +5,9 @@ import { makeClaimRequest } from "../utils/utils";
 import { useRouter } from "next/router";
 import { Layout } from "../components";
 import { Flex, Heading, Paragraph } from "theme-ui";
+import fs from "fs";
 
-const Page = () => {
+const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const [loading, setLoading] = useState(true);
   const [qrData, setQRData] = useState({});
 
@@ -15,7 +16,7 @@ const Page = () => {
   const checkAuthStatus = async (sessionID: string) => {
     try {
       const resp = await axios.get(
-        `http://localhost:3000/api/status?id=${sessionID}`
+          props.issuerLocalUrl + `/api/status?id=${sessionID}`
       );
 
       const userID = resp.data.id;
@@ -36,7 +37,7 @@ const Page = () => {
   useEffect(() => {
     (async () => {
       const resp = await axios.get(
-        "http://localhost:3000/api/sign-in?type=random"
+          props.issuerLocalUrl + "/api/sign-in?type=random"
       );
 
       setQRData(resp.data);
@@ -79,5 +80,29 @@ const Page = () => {
     </Layout>
   );
 };
+
+export async function getServerSideProps(context) {
+  const yaml = require('js-yaml');
+  const fs = require('fs');
+
+  let  issuerPublicUrl = "";
+  let  issuerLocalUrl = "";
+
+
+  try {
+    const doc = yaml.load(fs.readFileSync('./../../../issuer/issuer_config.default.yaml', 'utf8'));
+    issuerPublicUrl = doc.public_url;
+    issuerLocalUrl = doc.local_url;
+
+    console.log(`issuer: ${issuerPublicUrl}, ${issuerLocalUrl}` );
+  } catch (e) {
+    console.log("encounter error on load config file, err: " + e);
+    process.exit(1);
+  }
+
+  return {
+    props: {issuerPublicUrl: issuerPublicUrl, issuerLocalUrl: issuerLocalUrl },
+  }
+}
 
 export default Page;
