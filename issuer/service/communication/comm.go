@@ -46,7 +46,7 @@ func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("host-url is not set")
 	}
 	t := r.URL.Query().Get("type")
-	uri := fmt.Sprintf("%s/api/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
+	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
 
 	var request protocol.AuthorizationRequestMessage
 	request = auth.CreateAuthorizationRequestWithMessage("test flow", "message to sign", "1125GJqgw6YEsKFwj63GY87MMxPL9kwDKxPUiwMLNZ", uri)
@@ -94,27 +94,27 @@ func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (h *Handler) getOfferClaimRequest() (*protocol.CredentialsOfferMessage, error) {
-	logger.Debug("Handler.getOfferClaimRequest() invoked")
-
-	return &protocol.CredentialsOfferMessage{
-		ID:       "7f38a193-0918-4a48-9fac-36adfdb8b542",
-		Typ:      "application/iden3comm-plain-json",
-		Type:     "https://iden3-communication.io/credentials/1.0/offer",
-		ThreadID: "f7a3fae9-ecf1-4603-804e-8ff1c7632636",
-		Body: protocol.CredentialsOfferMessageBody{
-			URL: h.cfg.PublicUrl + `/api/v1/agent`,
-			Credentials: []protocol.CredentialOffer{
-				protocol.CredentialOffer{
-					ID:          "7f38a193-0918-4a48-", // mock value - need to fix this (claim id in the front end)
-					Description: "KYCAgeCredential",
-				},
-			}},
-		From: "123214512", // mock value - need to fix this
-		To:   "issuerId",  // mock value - need to fix this
-	}, nil
-
-}
+// currently in the frontend but need to move here
+//func (h *Handler) getOfferClaimRequest() (*protocol.CredentialsOfferMessage, error) {
+//	logger.Debug("Handler.getOfferClaimRequest() invoked")
+//
+//	return &protocol.CredentialsOfferMessage{
+//		ID:       "7f38a193-0918-4a48-9fac-36adfdb8b542",
+//		Typ:      "application/iden3comm-plain-json",
+//		Type:     "https://iden3-communication.io/credentials/1.0/offer",
+//		ThreadID: "f7a3fae9-ecf1-4603-804e-8ff1c7632636",
+//		Body: protocol.CredentialsOfferMessageBody{
+//			URL: h.cfg.PublicUrl + `/api/v1/agent`,
+//			Credentials: []protocol.CredentialOffer{
+//				protocol.CredentialOffer{
+//					ID:          "7f38a193-0918-4a48-", // mock value - need to fix this (claim id in the front end)
+//					Description: "KYCAgeCredential",
+//				},
+//			}},
+//		From: "123214512", // mock value - need to fix this
+//		To:   "issuerId",  // mock value - need to fix this
+//	}, nil
+//}
 
 // Handle the sign in response from the user
 // Callback works with sign-in callbacks

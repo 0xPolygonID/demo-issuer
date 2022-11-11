@@ -3,7 +3,7 @@ import axios from 'axios'
 
 export const checkAuthStatus =  async (sessionID:string, props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
      try {
-     const resp = await axios.get(props.issuerLocalUrl + `/api/status?id=${sessionID}`)
+     const resp = await axios.get("http://" + props.issuerLocalUrl + `/api/v1/status?id=${sessionID}`)
 
      console.log('Here', resp.data)
 
@@ -24,6 +24,8 @@ export const checkAuthStatus =  async (sessionID:string, props: {issuerPublicUrl
     }
   }
 
+
+
 export const makeAgeClaimData = (claimID:string, userID:string, props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   return{
   id:"f7a3fae9-ecf1-4603-804e-8ff1c7632636",
@@ -35,6 +37,8 @@ export const makeAgeClaimData = (claimID:string, userID:string, props: {issuerPu
   from: userID,
   to: issuerID
 }}
+
+
 
 export const makeClaimRequest = (userID:string, props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
     
@@ -53,7 +57,7 @@ export const makeClaimRequest = (userID:string, props: {issuerPublicUrl: string,
   
   const config = {
     method: 'post',
-    url: props.issuerLocalUrl + '/api/v1/claims',
+    url: "http://" + props.issuerLocalUrl + '/api/v1/claims',
     headers: { 
       'Content-Type': 'application/json'
     },

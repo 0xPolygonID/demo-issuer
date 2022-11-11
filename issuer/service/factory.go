@@ -47,7 +47,7 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	cmdHandler := command.NewHandler(idenState)
+	cmdHandler := command.NewHandler(idenState, cfg.KeyDir)
 	commHandler := communication.NewCommunicationHandler(cfg)
 
 	logger.Info("creating Identity")

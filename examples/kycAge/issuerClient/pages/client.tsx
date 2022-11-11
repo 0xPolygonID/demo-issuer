@@ -10,7 +10,6 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const userID = router.query.userID;
 
   let qrData;
-  console.log("claimId on the frontend " + claimID);
 
   if (typeof claimID === "string" && typeof userID === "string") {
     qrData = makeAgeClaimData(claimID, userID, props);

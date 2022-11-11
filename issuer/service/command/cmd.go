@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/iden3/go-circuits"
 	"github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-jwz"
 	"github.com/iden3/iden3comm"
@@ -23,16 +22,18 @@ const MaxBodySizeBytes = 2 * 1000 * 1000
 
 // Handler provides handler for zk proof
 type Handler struct {
-	idenState   *state.IdentityState
-	circuitPath string
+	idenState *state.IdentityState
+	keysPath  string
 }
 
 // NewIDEN3CommHandler inits IDEN3Comm handler
 func NewHandler(
 	state *state.IdentityState,
+	keysPath string,
 ) *Handler {
 	return &Handler{
 		idenState: state,
+		keysPath:  keysPath,
 	}
 }
 
@@ -40,7 +41,7 @@ func NewHandler(
 func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, error) {
 	logger.Debug("CommandHandler.Handle() invoked")
 
-	basicMessage, err := Unpack(comm.circuitPath, body)
+	basicMessage, err := comm.unpack(body)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +62,6 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
-	fmt.Printf("Agent.Handle() - GetClaim() with Id %s\n", fetchRequestBody.ID)
 	//idHexB, err := hex.DecodeString(fetchRequestBody.ID)										// changed back to uuid
 	//if err != nil {
 	//	return nil, err
@@ -94,19 +94,21 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		To:       basicMessage.From,
 	}
 
+	fmt.Printf("Agent.Handle() - Finish Succfully !!GetClaim() with Id %s\n", fetchRequestBody.ID)
+
 	return resp, nil
 }
 
-// Unpack returns unpacked message from transport envelope with verification of zeroknowledge proof
-func Unpack(circuitPath string, envelope []byte) (*iden3comm.BasicMessage, error) {
-	logger.Debug("CommandHandler.Unpack() invoked")
+// unpack returns unpacked message from transport envelope with verification of zeroknowledge proof
+func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
+	logger.Debug("CommandHandler.unpack() invoked")
 
 	token, err := jwz.Parse(string(envelope))
 	if err != nil {
 		return nil, err
 	}
 
-	verificationKey, err := getVerificationKey(circuitPath, circuits.AuthCircuitID)
+	verificationKey, err := getVerificationKey(comm.keysPath)
 	if err != nil {
 		return nil, errors.New("message was packed with unsupported circuit")
 	}
@@ -137,16 +139,16 @@ func Unpack(circuitPath string, envelope []byte) (*iden3comm.BasicMessage, error
 	return msg, err
 }
 
-func getVerificationKey(basePath string, circuitID circuits.CircuitID) ([]byte, error) {
+func getVerificationKey(basePath string) ([]byte, error) {
 	logger.Debug("CommandHandler.getVerificationKey() invoked")
 
-	return getPathToFile(basePath, circuitID, "verification_key.json")
+	return getPathToFile(basePath, "auth.json")
 }
 
-func getPathToFile(basePath string, circuitID circuits.CircuitID, fileName string) ([]byte, error) {
+func getPathToFile(basePath string, fileName string) ([]byte, error) {
 	logger.Debug("CommandHandler.getPathToFile() invoked")
 
-	path := filepath.Join(basePath, string(circuitID), fileName)
+	path := filepath.Join(basePath, fileName)
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed open file '%s' by path '%s'", fileName, path)
