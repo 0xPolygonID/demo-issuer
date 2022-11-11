@@ -14,8 +14,8 @@ import (
 	"issuer/service/claim"
 	"issuer/service/command"
 	"issuer/service/communication"
-	issuer_contract "issuer/service/contract"
 	"issuer/service/identity/state"
+	issuer_contract "issuer/service/models"
 	"issuer/service/schema"
 	"math/big"
 )

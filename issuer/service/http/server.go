@@ -10,8 +10,8 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"io"
 	http2 "issuer/http"
-	"issuer/service/contract"
 	"issuer/service/identity"
+	"issuer/service/models"
 	"net/http"
 	"strconv"
 )
@@ -113,7 +113,7 @@ func (s *Server) getIdentity(w http.ResponseWriter, r *http.Request) {
 func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Server.createClaim() invoked")
 
-	req := &contract.CreateClaimRequest{}
+	req := &models.CreateClaimRequest{}
 	if err := http2.JsonToStruct(r, req); err != nil {
 		logger.Error("cannot unmarshal json body, err: %v", err)
 		http2.EncodeResponse(w, http.StatusBadRequest, err)

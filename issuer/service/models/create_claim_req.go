@@ -1,4 +1,4 @@
-package contract
+package models
 
 import "encoding/json"
 

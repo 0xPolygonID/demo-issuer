@@ -1,4 +1,4 @@
-package contract
+package models
 
 type GetIdentityResponse struct {
 	Identifier string         `codec:"Identifier"`

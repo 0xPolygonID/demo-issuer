@@ -1,4 +1,4 @@
-package contract
+package models
 
 import "github.com/iden3/go-merkletree-sql"
 
