@@ -26,16 +26,25 @@ type Identity struct {
 	authClaimId *uuid.UUID
 	baseUrl     string
 
-	state       *state.IdentityState
-	CmdHandler  *command.Handler
-	CommHandler *communication.Handler
+	state         *state.IdentityState
+	CmdHandler    *command.Handler
+	CommHandler   *communication.Handler
+	schemaBuilder *schema.Builder
 }
 
-func New(s *state.IdentityState, cmdHandler *command.Handler, commHandler *communication.Handler, sk babyjub.PrivateKey, hostUrl string) (*Identity, error) {
+func New(
+	s *state.IdentityState,
+	cmdHandler *command.Handler,
+	commHandler *communication.Handler,
+	schemaBuilder *schema.Builder,
+	sk babyjub.PrivateKey,
+	hostUrl string,
+) (*Identity, error) {
 	iden := &Identity{
-		state:       s,
-		CmdHandler:  cmdHandler,
-		CommHandler: commHandler,
+		state:         s,
+		CmdHandler:    cmdHandler,
+		CommHandler:   commHandler,
+		schemaBuilder: schemaBuilder,
 
 		sk:      sk,
 		baseUrl: hostUrl,
@@ -142,7 +151,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	logger.Debug("CreateClaim() invoked")
 
 	logger.Tracef("process schema - url: %s", cReq.Schema.URL)
-	slots, encodedSchema, err := schema.Process(cReq.Schema.URL, cReq.Schema.Type, cReq.Data)
+	slots, encodedSchema, err := i.schemaBuilder.Process(cReq.Schema.URL, cReq.Schema.Type, cReq.Data)
 	if err != nil {
 		return nil, err
 	}

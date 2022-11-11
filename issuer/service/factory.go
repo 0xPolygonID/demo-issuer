@@ -11,6 +11,7 @@ import (
 	"issuer/service/http"
 	"issuer/service/identity"
 	"issuer/service/identity/state"
+	"issuer/service/schema"
 	"os"
 )
 
@@ -49,9 +50,9 @@ func CreateApp(altCfgPath string) error {
 
 	cmdHandler := command.NewHandler(idenState, cfg.KeyDir)
 	commHandler := communication.NewCommunicationHandler(cfg)
-
+	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, cmdHandler, commHandler, sk, cfg.PublicUrl)
+	issuer, err := identity.New(idenState, cmdHandler, commHandler, schemaBuilder, sk, cfg.PublicUrl)
 	if err != nil {
 		return err
 	}

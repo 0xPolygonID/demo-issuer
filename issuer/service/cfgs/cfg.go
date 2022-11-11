@@ -68,4 +68,8 @@ func setViperEnvConfig() {
 
 func setConfigDefaults() {
 	viper.SetDefault("LOG_LEVEL", "INFO")
+	viper.SetDefault("DB_FILE_PATH", "issuer.db")
+	viper.SetDefault("KEY_DIR", "keys")
+	viper.SetDefault("LOCAL_URL", "0.0.0.0:8001")
+	viper.SetDefault("IPFS_URL", "ipfs.io")
 }

@@ -7,6 +7,7 @@ type IssuerConfig struct {
 	PublicUrl  string   `mapstructure:"PUBLIC_URL" yaml:"public_url"`
 	LocalUrl   string   `mapstructure:"LOCAL_URL" yaml:"local_url"`
 	Identity   Identity `mapstructure:"IDENTITY" yaml:"identity"`
+	IpfsUrl    string   `mapstructure:"IPFS_URL" yaml:"ipfs_url"`
 }
 
 type Identity struct {

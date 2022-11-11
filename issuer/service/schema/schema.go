@@ -25,10 +25,10 @@ const (
 	// JSONLD JSON-LD schema format
 	JSONLD SchemaFormat = "json-ld"
 
-	// JSON JSON schema format
-	JSON SchemaFormat = "json"
+	//// JSON JSON schema format
+	//JSON SchemaFormat = "json"
 
-	IpfsUrl = "ipfs.io"
+	//IpfsUrl = "ipfs.io"
 )
 
 //const (
@@ -39,23 +39,33 @@ const (
 
 type SchemaFormat string
 
-func Process(url, _type string, data []byte) (*processor.ParsedSlots, string, error) {
-	schemaBytes, _, err := load(url)
+type Builder struct {
+	ipfsUrl string
+}
+
+func NewBuilder(ipfsUrl string) *Builder {
+	return &Builder{
+		ipfsUrl: ipfsUrl,
+	}
+}
+
+func (b *Builder) Process(url, _type string, data []byte) (*processor.ParsedSlots, string, error) {
+	schemaBytes, _, err := b.load(url)
 	if err != nil {
 		return nil, "", err
 	}
 
-	slots, err := getParsedSlots(url, _type, data)
+	slots, err := b.getParsedSlots(url, _type, data)
 	if err != nil {
 		return nil, "", err
 	}
 
-	encodedSchema := createSchemaHash(schemaBytes, _type)
+	encodedSchema := b.createSchemaHash(schemaBytes, _type)
 
 	return &slots, encodedSchema, nil
 }
 
-func getLoader(_url string) (processor.SchemaLoader, error) {
+func (b *Builder) getLoader(_url string) (processor.SchemaLoader, error) {
 	schemaURL, err := url.Parse(_url)
 	if err != nil {
 		return nil, err
@@ -65,7 +75,7 @@ func getLoader(_url string) (processor.SchemaLoader, error) {
 		return &loaders.HTTP{URL: _url}, nil
 	case "ipfs":
 		return loaders.IPFS{
-			URL: IpfsUrl,
+			URL: b.ipfsUrl,
 			CID: schemaURL.Host,
 		}, nil
 	default:
@@ -73,9 +83,9 @@ func getLoader(_url string) (processor.SchemaLoader, error) {
 	}
 }
 
-func getParsedSlots(schemaURL, credentialType string, dataBytes []byte) (processor.ParsedSlots, error) {
+func (b *Builder) getParsedSlots(schemaURL, credentialType string, dataBytes []byte) (processor.ParsedSlots, error) {
 	ctx := context.Background()
-	loader, err := getLoader(schemaURL)
+	loader, err := b.getLoader(schemaURL)
 	if err != nil {
 		return processor.ParsedSlots{}, err
 	}
@@ -102,7 +112,7 @@ func getParsedSlots(schemaURL, credentialType string, dataBytes []byte) (process
 	return pr.ParseSlots(dataBytes, schema)
 }
 
-func load(schemaURL string) (schema []byte, extension string, err error) {
+func (b *Builder) load(schemaURL string) (schema []byte, extension string, err error) {
 	var cacheValue interface{}
 	//nolint:gosec //reason: url hash key
 	hashBytes := sha1.Sum([]byte(schemaURL))
@@ -113,7 +123,7 @@ func load(schemaURL string) (schema []byte, extension string, err error) {
 	// schema doesn't exist in cache. Download and put to cache.
 	if cacheValue == nil {
 		var loader processor.SchemaLoader
-		loader, err = getLoader(schemaURL)
+		loader, err = b.getLoader(schemaURL)
 		if err != nil {
 			return nil, "", err
 		}
@@ -134,7 +144,7 @@ func load(schemaURL string) (schema []byte, extension string, err error) {
 	return []byte(schemaJSONStr), string(JSONLD), nil
 }
 
-func createSchemaHash(schemaBytes []byte, credentialType string) string {
+func (b *Builder) createSchemaHash(schemaBytes []byte, credentialType string) string {
 	var sHash core.SchemaHash
 	h := crypto.Keccak256(schemaBytes, []byte(credentialType))
 	copy(sHash[:], h[len(h)-16:])

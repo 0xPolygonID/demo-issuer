@@ -15,7 +15,7 @@ r-verifier-fe: # run verifier frontend
 	yarn --cwd examples/kycAge/verifierClient dev
 
 r-issuer-be: # run issuer backend
-	cd issuer/ && go run cmd/issuer/main.go
+	cd issuer/ && go run cmd/main.go
 
 open-browser:
 	./scripts/open_browser.sh
