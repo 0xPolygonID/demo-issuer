@@ -18,16 +18,15 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   useEffect(() => {
 
     (async () => {
-      console.log(`issuer-id: ${userID}`);
-      console.log(`claim-id: ${claimID}`);
-
       await axios.get("http://" + props.issuerLocalUrl + `/api/v1/claims/offers/${userID}/${claimID}`).then((res) => {
-        setQRData(res.data)
+      // await axios.get("http://" + props.issuerLocalUrl + `/api/v1/claims/offers/${userID}`).then((res) => {
+
+        setQRData(res.data);
       })
 
     })();
   }, [])
-  
+
     return (
     <Layout>
       <Flex
