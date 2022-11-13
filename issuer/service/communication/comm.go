@@ -3,6 +3,7 @@ package communication
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/iden3/go-circuits"
 	auth "github.com/iden3/go-iden3-auth"
 	"github.com/iden3/go-iden3-auth/loaders"
@@ -28,7 +29,6 @@ import (
 var requestTracker = cache.New(60*time.Minute, 60*time.Minute)
 
 func NewCommunicationHandler(issuerId string, cfg cfgs.IssuerConfig) *Handler {
-
 	return &Handler{
 		issuerId:  issuerId,
 		keyDir:    cfg.KeyDir,
@@ -105,8 +105,8 @@ func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetAgeClaimOffer(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Handler.GetAgeClaimOffer() invoked")
 
-	userId := r.URL.Query().Get("user-id")
-	claimId := r.URL.Query().Get("claim-id")
+	userId := chi.URLParam(r, "user-id")
+	claimId := chi.URLParam(r, "claim-id")
 
 	res := &protocol.CredentialsOfferMessage{
 		ID:       "7f38a193-0918-4a48-9fac-36adfdb8b542",
