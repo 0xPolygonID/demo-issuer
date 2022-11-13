@@ -6,8 +6,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 	database "issuer/db"
 	"issuer/service/cfgs"
-	"issuer/service/command"
-	"issuer/service/communication"
 	"issuer/service/http"
 	"issuer/service/identity"
 	"issuer/service/identity/state"
@@ -48,11 +46,9 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	cmdHandler := command.NewHandler(idenState, cfg.KeyDir)
-	commHandler := communication.NewCommunicationHandler(cfg)
 	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, cmdHandler, commHandler, schemaBuilder, sk, cfg.PublicUrl)
+	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg)
 	if err != nil {
 		return err
 	}

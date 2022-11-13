@@ -27,21 +27,29 @@ import (
 
 var requestTracker = cache.New(60*time.Minute, 60*time.Minute)
 
-func NewCommunicationHandler(config *cfgs.IssuerConfig) *Handler {
-	return &Handler{cfg: config}
+func NewCommunicationHandler(issuerId string, cfg cfgs.IssuerConfig) *Handler {
+
+	return &Handler{
+		issuerId:  issuerId,
+		keyDir:    cfg.KeyDir,
+		publicUrl: cfg.PublicUrl,
+	}
 }
 
 type Handler struct {
-	cfg *cfgs.IssuerConfig
+	keyDir    string
+	publicUrl string
+	issuerId  string
 }
 
 // sending sign in request to the client (move it to the issuer communication (identity))
 func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Handler.GetAuthRequest() invoked")
 
+	fmt.Printf("\n\nhosturl - %s\n\n", h.publicUrl)
 	sessionID := rand.Intn(1000000)
 
-	hostUrl := h.cfg.PublicUrl
+	hostUrl := h.publicUrl
 	if len(hostUrl) == 0 {
 		log.Fatal("host-url is not set")
 	}
@@ -94,6 +102,43 @@ func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *Handler) GetAgeClaimOffer(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Handler.GetAgeClaimOffer() invoked")
+
+	userId := r.URL.Query().Get("user-id")
+	claimId := r.URL.Query().Get("claim-id")
+
+	res := &protocol.CredentialsOfferMessage{
+		ID:       "7f38a193-0918-4a48-9fac-36adfdb8b542",
+		Typ:      "application/iden3comm-plain-json",
+		Type:     "https://iden3-communication.io/credentials/1.0/offer",
+		ThreadID: "f7a3fae9-ecf1-4603-804e-8ff1c7632636",
+		Body: protocol.CredentialsOfferMessageBody{
+			URL: h.publicUrl + `/api/v1/agent`,
+			Credentials: []protocol.CredentialOffer{
+				protocol.CredentialOffer{
+					ID:          claimId, // mock value - need to fix this (claim id in the front end)
+					Description: "KYCAgeCredential",
+				},
+			}},
+		From: userId,     // mock value - need to fix this
+		To:   "issuerId", // mock value - need to fix this
+	}
+
+	msgBytes, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	w.Write(msgBytes)
+	return
+}
+
 // currently in the frontend but need to move here
 //func (h *Handler) getOfferClaimRequest() (*protocol.CredentialsOfferMessage, error) {
 //	logger.Debug("Handler.getOfferClaimRequest() invoked")
@@ -131,7 +176,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		keyDIR := h.cfg.KeyDir
+		keyDIR := h.keyDir
 		if len(keyDIR) == 0 {
 			log.Fatal("host-url is not set")
 		}

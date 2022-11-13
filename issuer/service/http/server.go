@@ -73,6 +73,11 @@ func (s *Server) newRouter() chi.Router {
 		root.Route("/claims", func(claims chi.Router) {
 			claims.Get("/{id}", s.getClaim)
 			claims.Post("/", s.createClaim)
+
+			claims.Route("/offers", func(claimRequests chi.Router) {
+				claims.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
+			})
+
 		})
 
 		root.Route("/revocations/{nonce}", func(revs chi.Router) {

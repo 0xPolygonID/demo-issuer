@@ -11,6 +11,7 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
+	"issuer/service/cfgs"
 	"issuer/service/claim"
 	"issuer/service/command"
 	"issuer/service/communication"
@@ -34,20 +35,16 @@ type Identity struct {
 
 func New(
 	s *state.IdentityState,
-	cmdHandler *command.Handler,
-	commHandler *communication.Handler,
 	schemaBuilder *schema.Builder,
 	sk babyjub.PrivateKey,
-	hostUrl string,
+	cfg *cfgs.IssuerConfig,
 ) (*Identity, error) {
 	iden := &Identity{
 		state:         s,
-		CmdHandler:    cmdHandler,
-		CommHandler:   commHandler,
 		schemaBuilder: schemaBuilder,
 
 		sk:      sk,
-		baseUrl: hostUrl,
+		baseUrl: cfg.PublicUrl,
 	}
 
 	id, authClaimId, err := iden.state.GetIdentityFromDB()
@@ -58,10 +55,14 @@ func New(
 	if len(id) > 0 { // case: identity found -> load identity
 		iden.Identifier = id
 		iden.authClaimId = authClaimId
-		return iden, nil
+	} else { // case: identity not found -> init new identity
+		iden.init()
 	}
 
-	return iden, iden.init()
+	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
+	iden.CmdHandler = command.NewHandler(iden.state, cfg.KeyDir)
+
+	return iden, nil
 }
 
 func (i *Identity) init() error {
