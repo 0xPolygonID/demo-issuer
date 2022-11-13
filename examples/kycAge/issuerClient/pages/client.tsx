@@ -1,24 +1,33 @@
 import { Box, Flex, Heading, Paragraph } from "theme-ui";
+import { useEffect, useState } from "react";
+
 import { useRouter } from "next/router";
 import { makeAgeClaimData } from "../utils/utils";
 import { Layout, QRCode } from "../components";
 import fs from "fs";
+import axios from "axios";
 
 const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
+  const [qrData, setQRData] = useState({});
+
   const router = useRouter();
   const claimID = router.query.claimID;
   const userID = router.query.userID;
 
-  let qrData;
 
-  if (typeof claimID === "string" && typeof userID === "string") {
-    qrData = makeAgeClaimData(claimID, userID, props);
-  }
+  useEffect(() => {
 
-    console.log("qrData {}", qrData);
-    console.log("Qrcode ", JSON.stringify(qrData));
-    console.log(qrData);
+    (async () => {
+      console.log(`issuer-id: ${userID}`);
+      console.log(`claim-id: ${claimID}`);
 
+      await axios.get("http://" + props.issuerLocalUrl + `/api/v1/claims/offers/${userID}/${claimID}`).then((res) => {
+        setQRData(res.data)
+      })
+
+    })();
+  }, [])
+  
     return (
     <Layout>
       <Flex

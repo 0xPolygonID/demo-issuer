@@ -75,7 +75,7 @@ func (s *Server) newRouter() chi.Router {
 			claims.Post("/", s.createClaim)
 
 			claims.Route("/offers", func(claimRequests chi.Router) {
-				claims.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
+				claimRequests.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
 			})
 
 		})

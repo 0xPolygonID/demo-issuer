@@ -117,12 +117,12 @@ func (h *Handler) GetAgeClaimOffer(w http.ResponseWriter, r *http.Request) {
 			URL: h.publicUrl + `/api/v1/agent`,
 			Credentials: []protocol.CredentialOffer{
 				protocol.CredentialOffer{
-					ID:          claimId, // mock value - need to fix this (claim id in the front end)
+					ID:          claimId,
 					Description: "KYCAgeCredential",
 				},
 			}},
-		From: userId,     // mock value - need to fix this
-		To:   "issuerId", // mock value - need to fix this
+		From: userId,
+		To:   h.issuerId,
 	}
 
 	msgBytes, err := json.Marshal(res)
