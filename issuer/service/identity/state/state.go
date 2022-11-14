@@ -1,6 +1,7 @@
 package state
 
 import (
+	store "github.com/demonsh/smt-bolt"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -21,17 +22,22 @@ type IdentityState struct {
 func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
 	logger.Debug("creating new identity state")
 
-	claims, err := NewClaims(db, treeDepth)
+	treeStorage, err := store.NewBoltStorage(db.GetConnection())
 	if err != nil {
 		return nil, err
 	}
 
-	revs, err := NewRevocations(db, treeDepth)
+	claims, err := NewClaims(db, treeStorage, treeDepth)
 	if err != nil {
 		return nil, err
 	}
 
-	roots, err := NewRoots(db, treeDepth)
+	revs, err := NewRevocations(treeStorage, treeDepth)
+	if err != nil {
+		return nil, err
+	}
+
+	roots, err := NewRoots(treeStorage, treeDepth)
 	if err != nil {
 		return nil, err
 	}

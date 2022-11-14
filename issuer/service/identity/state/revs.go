@@ -5,7 +5,6 @@ import (
 	store "github.com/demonsh/smt-bolt"
 	"github.com/iden3/go-merkletree-sql"
 	logger "github.com/sirupsen/logrus"
-	"issuer/db"
 	"math/big"
 )
 
@@ -13,13 +12,8 @@ type Revocations struct {
 	Tree *merkletree.MerkleTree
 }
 
-func NewRevocations(db *db.DB, treeDepth int) (*Revocations, error) {
+func NewRevocations(treeStorage *store.BoltStore, treeDepth int) (*Revocations, error) {
 	logger.Debug("creating new revocations state")
-
-	treeStorage, err := store.NewBoltStorage(db.GetConnection())
-	if err != nil {
-		return nil, err
-	}
 
 	revsTree, err := merkletree.NewMerkleTree(context.Background(), treeStorage.WithPrefix([]byte("revocation")), treeDepth)
 	if err != nil {
