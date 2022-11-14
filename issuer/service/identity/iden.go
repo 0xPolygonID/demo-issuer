@@ -25,7 +25,7 @@ type Identity struct {
 	sk          babyjub.PrivateKey
 	Identifier  *core.ID
 	authClaimId *uuid.UUID
-	baseUrl     string
+	publicUrl   string
 
 	state         *state.IdentityState
 	CmdHandler    *command.Handler
@@ -43,8 +43,8 @@ func New(
 		state:         s,
 		schemaBuilder: schemaBuilder,
 
-		sk:      sk,
-		baseUrl: cfg.PublicUrl,
+		sk:        sk,
+		publicUrl: cfg.PublicUrl,
 	}
 
 	id, authClaimId, err := iden.state.GetIdentityFromDB()
@@ -183,7 +183,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 
 	// set credential status
 	issuerIDString := i.Identifier.String()
-	cs, err := claim.CreateCredentialStatus(i.baseUrl, verifiable.SparseMerkleTreeProof, claimModel.RevNonce)
+	cs, err := claim.CreateCredentialStatus(i.publicUrl, verifiable.SparseMerkleTreeProof, claimModel.RevNonce)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
-	sigProof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocations/%d", i.baseUrl, authClaim.RevNonce)
+	sigProof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocations/%d", i.publicUrl, authClaim.RevNonce)
 
 	// Save
 	claimModel.Identifier = issuerIDString
