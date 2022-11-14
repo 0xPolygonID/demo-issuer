@@ -94,8 +94,6 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		To:       basicMessage.From,
 	}
 
-	fmt.Printf("Agent.Handle() - Finish Succfully !!GetClaim() with Id %s\n", fetchRequestBody.ID)
-
 	return resp, nil
 }
 

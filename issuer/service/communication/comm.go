@@ -46,7 +46,6 @@ type Handler struct {
 func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Handler.GetAuthRequest() invoked")
 
-	fmt.Printf("\n\nhosturl - %s\n\n", h.publicUrl)
 	sessionID := rand.Intn(1000000)
 
 	hostUrl := h.publicUrl

@@ -52,11 +52,14 @@ func New(
 		return nil, fmt.Errorf("error on identitiy initialization, %v", err)
 	}
 
-	if len(id) > 0 { // case: identity found -> load identity
+	if id != nil && len(id) > 0 { // case: identity found -> load identity
 		iden.Identifier = id
 		iden.authClaimId = authClaimId
 	} else { // case: identity not found -> init new identity
-		iden.init()
+		err = iden.init()
+		if err != nil {
+			return nil, fmt.Errorf("error on identitiy initialization, %v", err)
+		}
 	}
 
 	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
