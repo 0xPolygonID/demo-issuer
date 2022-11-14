@@ -16,7 +16,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const checkAuthStatus = async (sessionID: string) => {
     try {
       const resp = await axios.get(
-          props.issuerLocalUrl + `/api/status?id=${sessionID}`
+          "http://" +props.issuerLocalUrl + `/api/v1/status?id=${sessionID}`
       );
 
       const userID = resp.data.id;
@@ -37,7 +37,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   useEffect(() => {
     (async () => {
       const resp = await axios.get(
-          props.issuerLocalUrl + "/api/sign-in?type=random"
+          "http://" +props.issuerLocalUrl + "/api/v1/sign-in?type=random"
       );
 
       setQRData(resp.data);
