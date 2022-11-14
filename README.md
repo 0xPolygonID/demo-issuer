@@ -19,13 +19,13 @@ You can find further information on our [associated documentation](https://demoi
 
 ### Run the Age KYC demo
 
-- Run ```make -j4``` on the root of the repo to run the age KYC demo.
-- Follow the instructions on screen with the [KYC Demo documentation](https://demoissuer.gitbook.io/demoissuer/kyc-age-demo).
+1. Run ```make -j4``` on the root of the repo to run the age KYC demo.
+2. Follow the instructions on screen with the [KYC Demo documentation](https://demoissuer.gitbook.io/demoissuer/kyc-age-demo).
 
 ### Run the Demo Issuer separately
 
-- Setup the configuration in the [config file](issuer/issuer_config.default.yaml).
-- Run the demo issuer with ```go run cmd/issuer/main.go``` from the [/issuer](issuer) directory.
+1. Setup the configuration in the [config file](issuer/issuer_config.default.yaml).
+2. Run the demo issuer with ```go run cmd/issuer/main.go``` from the [/issuer](issuer) directory.
 
 [//]: # (### Run issuer/verifier webpage separately )
 
