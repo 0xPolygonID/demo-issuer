@@ -18,11 +18,6 @@ type Claims struct {
 func NewClaims(db *db.DB, treeStorage *store.BoltStore, treeDepth int) (*Claims, error) {
 	logger.Debug("creating new claims state")
 
-	//treeStorage, err := store.NewBoltStorage(db.GetConnection())
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	claimTree, err := merkletree.NewMerkleTree(context.Background(), treeStorage.WithPrefix([]byte("claims")), treeDepth)
 	if err != nil {
 		return nil, err
