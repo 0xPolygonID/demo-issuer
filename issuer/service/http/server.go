@@ -78,7 +78,7 @@ func (s *Server) newRouter() chi.Router {
 				claimRequests.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
 			})
 
-			root.Route("/revocations/{nonce}", func(revs chi.Router) {
+			claims.Route("/revocations/{nonce}", func(revs chi.Router) {
 				revs.Post("/", s.getRevocationStatus)
 			})
 
