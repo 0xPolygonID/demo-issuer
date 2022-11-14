@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import {checkAuthStatus, makeClaimRequest} from "../utils/utils";
+import {checkAuthStatus, makeAgeClaimRequest} from "../utils/utils";
 import { useRouter } from "next/router";
 import { Container, Flex, Heading, Paragraph, Spinner } from "theme-ui";
 import { Layout, QRCode } from "../components";
@@ -30,12 +30,12 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
           if (resp) {
             const userID = resp.data.id
             if (userID) {
-
-              const respMakeClaim = await axios(makeClaimRequest(userID, props));
+              let dob = 19860503;
+              const respMakeClaim = await axios(makeAgeClaimRequest(dob, userID, props));
               // TODO: Error Handling
               const claimID = respMakeClaim.data.id ? respMakeClaim.data.id : "";
               clearInterval(interval);
-              router.push(`/client?claimID=${claimID}&userID=${userID}`);
+              router.push(`/client?claimID=${claimID}&userID=${userID}&dob=${dob}`);
             }
           }
         } catch (e) {

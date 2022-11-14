@@ -13,13 +13,15 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const router = useRouter();
   const claimID = router.query.claimID;
   const userID = router.query.userID;
-
+  const dob = `${router.query.dob}`;
+  const year = dob.substring(0, 4);
+  const month = dob.substring(4, 6);
+  const day = dob.substring(6, 8);
 
   useEffect(() => {
 
     (async () => {
       await axios.get("http://" + props.issuerLocalUrl + `/api/v1/claims/offers/${userID}/${claimID}`).then((res) => {
-      // await axios.get("http://" + props.issuerLocalUrl + `/api/v1/claims/offers/${userID}`).then((res) => {
 
         setQRData(res.data);
       })
@@ -47,7 +49,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
         />
         <Box>
           <Paragraph sx={{ variant: "text.para" }}>
-            This claim proves you are born on January 1st, 2002
+            This claim proves you are born on {month}/{day}/{year} <span style={{ fontSize: "16px" }}>(mm/dd/yyyy)</span>
           </Paragraph>
         </Box>
       </Flex>

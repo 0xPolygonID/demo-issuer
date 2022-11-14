@@ -195,7 +195,6 @@ func SignClaimEntry(claim *core.Claim, signFunc func(z *big.Int) ([]byte, error)
 }
 
 func ConstructSigProof(authClaim *Claim, sig string) (*verifiable.BJJSignatureProof2021, error) {
-
 	authMTP := &verifiable.Iden3SparseMerkleProof{}
 	err := json.Unmarshal(authClaim.MTPProof, authMTP)
 	if err != nil {
@@ -212,25 +211,6 @@ func ConstructSigProof(authClaim *Claim, sig string) (*verifiable.BJJSignaturePr
 
 	return proof, nil
 }
-
-// comment out and made changes on the above func
-//func ConstructSigProof(authClaim *Claim, sig string) (*verifiable.Iden3SparseMerkleProof, error) {
-//
-//	authMTP := &verifiable.Iden3SparseMerkleProof{}
-//	err := json.Unmarshal(authClaim.MTPProof, authMTP)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// followed https://w3c-ccg.github.io/ld-proofs/
-//	proof := verifiable.BJJSignatureProof2021{}
-//	proof.Type = BabyJubSignatureType
-//	proof.Signature = sig // sig -string
-//	authMTP.IssuerData.AuthClaim = authClaim.CoreClaim
-//	proof.IssuerData = authMTP.IssuerData
-//
-//	return authMTP, nil
-//}
 
 //func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
 //	hashIndex, hashValue, err := claim.CoreClaim.HiHv()

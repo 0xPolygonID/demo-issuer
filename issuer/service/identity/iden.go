@@ -209,12 +209,6 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 
 	sigProof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", i.baseUrl, claimModel.RevNonce)
 
-	//mtProof, err := i.generateProof(authClaim.CoreClaim)
-	//mtProof, err := i.generateProof(coreClaim)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	// Save
 	claimModel.Identifier = issuerIDString
 	claimModel.Issuer = issuerIDString
@@ -224,14 +218,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 	claimModel.SignatureProof = jsonSignatureProof
-	//claimModel.MTPProof = mtProof
 	claimModel.Data = cReq.Data
-
-	//logger.Trace("adding claim to the claims tree")
-	//err = i.state.AddClaimToTree(coreClaim)
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	logger.Trace("adding claim to the claims DB")
 	err = i.state.AddClaimToDB(claimModel)

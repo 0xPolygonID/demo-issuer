@@ -11,7 +11,7 @@ export const checkAuthStatus =  async (sessionID:string, props: {issuerPublicUrl
 
      if(userID){
          
-        const resp = await axios(makeClaimRequest(userID, props))
+        const resp = await axios(makeAgeClaimRequest(userID, props))
         // TODO: Error Handling
         const claimID = resp.data.id ? resp.data.id : ""
         return {claimID, userID}
@@ -40,7 +40,7 @@ export const makeAgeClaimData = (claimID:string, userID:string, props: {issuerPu
 
 
 
-export const makeClaimRequest = (userID:string, props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
+export const makeAgeClaimRequest = (dob: number, userID:string, props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
     
     const data = JSON.stringify({
     "identifier": userID,
@@ -49,7 +49,7 @@ export const makeClaimRequest = (userID:string, props: {issuerPublicUrl: string,
       "type": "KYCAgeCredential"
     },
     "data": {
-      "birthday": 19960424,
+      "birthday": dob, //19960424,
       "documentType": 1
     },
     "expiration": 12345678888
