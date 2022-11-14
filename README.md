@@ -25,7 +25,7 @@ You can find further information on our [associated documentation](https://demoi
 ### Run the Demo Issuer separately
 
 1. Setup the configuration in the [config file](issuer/issuer_config.default.yaml).
-2. Run the demo issuer with ```go run cmd/issuer/main.go``` from the [/issuer](issuer) directory.
+2. Run the demo issuer with ```go run cmd/main.go``` from the [/issuer](issuer) directory.
 
 [//]: # (### Run issuer/verifier webpage separately )
 
