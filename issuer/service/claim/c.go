@@ -163,7 +163,7 @@ func NewAuthClaim(key *babyjub.PublicKey, schemaHash core.SchemaHash) (*core.Cla
 
 func CreateCredentialStatus(urlBase string, sType verifiable.CredentialStatusType, revNonce uint64) ([]byte, error) {
 	cStatus := verifiable.CredentialStatus{
-		ID:   fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", urlBase, revNonce),
+		ID:   fmt.Sprintf("%s/api/v1/claims/revocation/%d", urlBase, revNonce),
 		Type: sType,
 	}
 

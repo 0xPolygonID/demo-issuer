@@ -2,7 +2,6 @@ import { Box, Flex, Heading, Paragraph } from "theme-ui";
 import { useEffect, useState } from "react";
 
 import { useRouter } from "next/router";
-import { makeAgeClaimData } from "../utils/utils";
 import { Layout, QRCode } from "../components";
 import fs from "fs";
 import axios from "axios";

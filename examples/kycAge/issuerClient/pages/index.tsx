@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import {checkAuthStatus, makeAgeClaimRequest} from "../utils/utils";
+import {makeAgeClaimRequest} from "../utils/utils";
 import { useRouter } from "next/router";
 import { Container, Flex, Heading, Paragraph, Spinner } from "theme-ui";
 import { Layout, QRCode } from "../components";

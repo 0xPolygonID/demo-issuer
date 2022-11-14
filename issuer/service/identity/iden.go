@@ -207,7 +207,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
-	sigProof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/status/%d", i.baseUrl, claimModel.RevNonce)
+	sigProof.IssuerData.RevocationStatus = fmt.Sprintf("%s/api/v1/claims/revocation/%d", i.baseUrl, authClaim.RevNonce)
 
 	// Save
 	claimModel.Identifier = issuerIDString

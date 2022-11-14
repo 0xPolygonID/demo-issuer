@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/iden3/go-circuits"
 	auth "github.com/iden3/go-iden3-auth"
 	"github.com/iden3/go-iden3-auth/loaders"
@@ -108,10 +109,10 @@ func (h *Handler) GetAgeClaimOffer(w http.ResponseWriter, r *http.Request) {
 	claimId := chi.URLParam(r, "claim-id")
 
 	res := &protocol.CredentialsOfferMessage{
-		ID:       "7f38a193-0918-4a48-9fac-36adfdb8b542",
+		ID:       uuid.New().String(),
 		Typ:      "application/iden3comm-plain-json",
 		Type:     "https://iden3-communication.io/credentials/1.0/offer",
-		ThreadID: "f7a3fae9-ecf1-4603-804e-8ff1c7632636",
+		ThreadID: uuid.New().String(),
 		Body: protocol.CredentialsOfferMessageBody{
 			URL: h.publicUrl + `/api/v1/agent`,
 			Credentials: []protocol.CredentialOffer{
