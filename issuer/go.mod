@@ -3,7 +3,7 @@ module issuer
 go 1.19
 
 require (
-	github.com/demonsh/smt-bolt v0.0.0-20220720175453-d0638dcb8fa3
+	github.com/demonsh/smt-bolt v0.0.1-alpha.0
 	github.com/ethereum/go-ethereum v1.10.25
 	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/cors v1.2.1
@@ -82,7 +82,7 @@ require (
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
