@@ -235,7 +235,7 @@ func (h *Handler) GetRequestStatus(w http.ResponseWriter, r *http.Request) {
 	logger.Tracef("cache - getting id %s from cahce\n", id)
 	item, ok := requestTracker.Get(id)
 	if !ok {
-		logger.Errorf("item not found %v", id)
+		logger.Tracef("item not found %v", id)
 		http.NotFound(w, r)
 		return
 	}

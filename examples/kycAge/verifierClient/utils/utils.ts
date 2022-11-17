@@ -53,7 +53,7 @@ export const makeClaimRequest = (userID:string, props: {issuerPublicUrl: string,
   
   const config = {
     method: 'post',
-    url: props.issuerLocalUrl +'/api/v1/claims',
+    url: "http://" + props.issuerLocalUrl +'/api/v1/claims',
     headers: { 
       'Content-Type': 'application/json'
     },

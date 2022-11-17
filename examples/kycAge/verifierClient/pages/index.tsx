@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { QRCode } from "react-qr-svg";
 import axios from "axios";
-import { makeClaimRequest } from "../utils/utils";
+import { makeClaimRequest} from "../utils/utils";
 import { useRouter } from "next/router";
 import { Layout } from "../components";
 import { Flex, Heading, Paragraph } from "theme-ui";
@@ -49,7 +49,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
         const resp = await checkAuthStatus(sessionID);
         if (resp) {
           clearInterval(interval);
-          alert("verification succeded ✅");
+          alert("verification succeeded ✅");
         }
       }, 2000);
     })();
@@ -94,7 +94,6 @@ export async function getServerSideProps(context) {
     issuerPublicUrl = doc.public_url;
     issuerLocalUrl = doc.local_url;
 
-    console.log(`issuer: ${issuerPublicUrl}, ${issuerLocalUrl}` );
   } catch (e) {
     console.log("encounter error on load config file, err: " + e);
     process.exit(1);
