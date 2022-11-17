@@ -13,7 +13,8 @@ You can find further information on our [associated documentation](https://demoi
 - [Ngrok](https://ngrok.com/download)
 - [Make](https://www.gnu.org/software/make/)*
 - [Yarn](https://classic.yarnpkg.com/)*
-- [Npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)*
+- [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)*
+- [jq](https://stedolan.github.io/jq/download/)*
 
 *used only in the KYC demo
 

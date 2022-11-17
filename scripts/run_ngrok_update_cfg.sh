@@ -16,12 +16,12 @@ then
 fi
 
 NGROK_REMOTE_URL=$(echo ${NGROK_REMOTE_URL} | tr -d '"')
-#echo "NGROK public address - ${NGROK_REMOTE_URL}."
+echo "NGROK public address - ${NGROK_REMOTE_URL}."
 
-if "${NGROK_REMOTE_URL}" == 'NULL'
-then
-  echo "ERROR: NGROK public url is NULL."
-fi
+#if "${NGROK_REMOTE_URL}" == 'NULL'
+#then
+#  echo "ERROR: NGROK public url is NULL."
+#fi
 
 # remove current ngrok remote url
 grep -v '^public' issuer/issuer_config.default.yaml > temp && mv temp issuer/issuer_config.default.yaml

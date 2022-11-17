@@ -22,7 +22,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
       const userID = resp.data.id;
 
       if (userID) {
-        const resp = await axios(makeClaimRequest(userID));
+        const resp = await axios(makeClaimRequest(userID, props));
         // TODO: Error Handling
         const claimID = resp.data.id ? resp.data.id : "";
         return { claimID, userID };
