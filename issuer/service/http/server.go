@@ -91,6 +91,11 @@ func (s *Server) newRouter() chi.Router {
 		root.Route("/sign-in", func(agent chi.Router) {
 			agent.Get("/", s.issuer.CommHandler.GetAuthVerificationRequest)
 		})
+
+		root.Route("/age-verification-request", func(agent chi.Router) {
+			agent.Get("/", s.issuer.CommHandler.GetAgeVerificationRequest)
+		})
+
 		root.Route("/callback", func(agent chi.Router) {
 			agent.Post("/", s.issuer.CommHandler.Callback)
 		})

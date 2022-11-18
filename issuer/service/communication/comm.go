@@ -53,7 +53,6 @@ func (h *Handler) GetAuthVerificationRequest(w http.ResponseWriter, r *http.Requ
 	if len(hostUrl) == 0 {
 		log.Fatal("host-url is not set")
 	}
-	t := r.URL.Query().Get("type")
 	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
 
 	var request protocol.AuthorizationRequestMessage
@@ -61,27 +60,6 @@ func (h *Handler) GetAuthVerificationRequest(w http.ResponseWriter, r *http.Requ
 
 	request.ID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
 	request.ThreadID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
-
-	if t != "" {
-		var mtpProofRequest protocol.ZeroKnowledgeProofRequest
-		mtpProofRequest.ID = 1
-		mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigCircuitID)
-		mtpProofRequest.Rules = map[string]interface{}{
-			"query": pubsignals.Query{
-				AllowedIssuers: []string{"*"},
-				Req: map[string]interface{}{
-					"birthday": map[string]interface{}{
-						"$lt": 20000101,
-					},
-				},
-				Schema: protocol.Schema{
-					URL:  "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v2.json-ld",
-					Type: "KYCAgeCredential",
-				},
-			},
-		}
-		request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
-	}
 
 	sId := strconv.Itoa(sessionID)
 	userSessionTracker.Set(sId, request, cache.DefaultExpiration)
@@ -102,9 +80,8 @@ func (h *Handler) GetAuthVerificationRequest(w http.ResponseWriter, r *http.Requ
 	return
 }
 
-// sending sign in request to the client (move it to the issuer communication (identity))
 func (h *Handler) GetAgeVerificationRequest(w http.ResponseWriter, r *http.Request) {
-	logger.Debug("Handler.GetAuthVerificationRequest() invoked")
+	logger.Debug("Handler.GetAgeVerificationRequest() invoked")
 
 	sessionID := rand.Intn(1000000)
 
@@ -112,7 +89,6 @@ func (h *Handler) GetAgeVerificationRequest(w http.ResponseWriter, r *http.Reque
 	if len(hostUrl) == 0 {
 		log.Fatal("host-url is not set")
 	}
-	t := r.URL.Query().Get("type")
 	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
 
 	var request protocol.AuthorizationRequestMessage
