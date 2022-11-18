@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/router";
 import { Layout, QRCode } from "../components";
-import fs from "fs";
 import axios from "axios";
 
 const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
