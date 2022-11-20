@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/utils"
+	"github.com/iden3/go-merkletree-sql"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
@@ -18,7 +21,6 @@ import (
 	"issuer/service/identity/state"
 	issuer_contract "issuer/service/models"
 	"issuer/service/schema"
-	"math/big"
 )
 
 type Identity struct {
@@ -27,10 +29,21 @@ type Identity struct {
 	authClaimId *uuid.UUID
 	publicUrl   string
 
-	state         *state.IdentityState
-	CmdHandler    *command.Handler
-	CommHandler   *communication.Handler
-	schemaBuilder *schema.Builder
+	state            *state.IdentityState
+	CmdHandler       *command.Handler
+	CommHandler      *communication.Handler
+	schemaBuilder    *schema.Builder
+	latestRootsState RootsState
+}
+
+type RootsState struct {
+	RootsTreeRoot      *merkletree.Hash
+	ClaimsTreeRoot     *merkletree.Hash
+	RevocationTreeRoot *merkletree.Hash
+}
+
+func (t *RootsState) State() (*merkletree.Hash, error) {
+	return merkletree.HashElems(t.ClaimsTreeRoot.BigInt(), t.RevocationTreeRoot.BigInt(), t.RootsTreeRoot.BigInt())
 }
 
 func New(
@@ -75,6 +88,12 @@ func (i *Identity) init() error {
 	identifier, authClaim, err := i.state.SetupGenesisState(i.sk.Public())
 	if err != nil {
 		return err
+	}
+
+	i.latestRootsState = RootsState{
+		ClaimsTreeRoot:     i.state.Claims.Tree.Root(),
+		RevocationTreeRoot: i.state.Revocations.Tree.Root(),
+		RootsTreeRoot:      i.state.Roots.Tree.Root(),
 	}
 
 	i.Identifier = identifier
