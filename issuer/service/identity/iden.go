@@ -27,6 +27,7 @@ type Identity struct {
 	sk          babyjub.PrivateKey
 	Identifier  *core.ID
 	authClaimId *uuid.UUID
+	authClaim   *core.Claim
 	publicUrl   string
 
 	state            *state.IdentityState
@@ -37,9 +38,10 @@ type Identity struct {
 }
 
 type RootsState struct {
-	RootsTreeRoot      *merkletree.Hash
-	ClaimsTreeRoot     *merkletree.Hash
-	RevocationTreeRoot *merkletree.Hash
+	IsLatestStateGenesis bool
+	RootsTreeRoot        *merkletree.Hash
+	ClaimsTreeRoot       *merkletree.Hash
+	RevocationTreeRoot   *merkletree.Hash
 }
 
 func (t *RootsState) State() (*merkletree.Hash, error) {
@@ -90,10 +92,12 @@ func (i *Identity) init() error {
 		return err
 	}
 
+	i.authClaim = authClaim
 	i.latestRootsState = RootsState{
-		ClaimsTreeRoot:     i.state.Claims.Tree.Root(),
-		RevocationTreeRoot: i.state.Revocations.Tree.Root(),
-		RootsTreeRoot:      i.state.Roots.Tree.Root(),
+		IsLatestStateGenesis: true,
+		ClaimsTreeRoot:       i.state.Claims.Tree.Root(),
+		RevocationTreeRoot:   i.state.Revocations.Tree.Root(),
+		RootsTreeRoot:        i.state.Roots.Tree.Root(),
 	}
 
 	i.Identifier = identifier
@@ -326,6 +330,29 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 
 	return res, nil
 
+}
+
+func (i *Identity) GetInclusionProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
+	hi, _, err := claim.HiHv()
+	if err != nil {
+		return nil, nil, err
+	}
+	return i.state.Claims.Tree.GenerateProof(context.Background(), hi, i.latestRootsState.ClaimsTreeRoot)
+}
+
+func (i *Identity) GetRevocationProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
+	hi, _, err := claim.HiHv()
+	if err != nil {
+		return nil, nil, err
+	}
+	return i.state.Revocations.Tree.GenerateProof(context.Background(), hi, i.latestRootsState.RevocationTreeRoot)
+}
+
+func (i *Identity) PublishLatestState() error {
+	logger.Debug("PublishLatestState() invoked")
+
+	// TODO:
+	return nil
 }
 
 // data should be a little-endian bytes representation of *big.Int.
