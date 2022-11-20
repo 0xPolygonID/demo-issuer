@@ -31,7 +31,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   useEffect(() => {
     (async () => {
       const resp = await axios.get(
-          "http://" +props.issuerLocalUrl + "/api/v1/age-verification-request"
+          "http://" +props.issuerLocalUrl + "/api/v1/requests/age-kyc"
       );
 
       setQRData(resp.data);
