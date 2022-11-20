@@ -309,16 +309,16 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 	rID := new(big.Int).SetUint64(nonce)
 
 	res := &issuer_contract.GetRevocationStatusResponse{}
-	mtp, err := i.state.Revocations.GenerateRevocationProof(rID)
+	mtp, err := i.state.Revocations.GenerateRevocationProof(rID, i.latestRootsState.RevocationTreeRoot)
 	if err != nil {
 		return nil, err
 	}
 	res.MTP = mtp
-	res.Issuer.RevocationTreeRoot = i.state.Revocations.Tree.Root().Hex()
-	res.Issuer.RootOfRoots = i.state.Roots.Tree.Root().Hex()
-	res.Issuer.ClaimsTreeRoot = i.state.Claims.Tree.Root().Hex()
+	res.Issuer.RevocationTreeRoot = i.latestRootsState.RevocationTreeRoot.Hex()
+	res.Issuer.RootOfRoots = i.latestRootsState.RootsTreeRoot.Hex()
+	res.Issuer.ClaimsTreeRoot = i.latestRootsState.RootsTreeRoot.Hex()
 
-	stateHash, err := i.state.GetStateHash()
+	stateHash, err := i.latestRootsState.State()
 	if err != nil {
 		return nil, err
 	}
