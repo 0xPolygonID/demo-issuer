@@ -18,7 +18,7 @@ r-issuer-be: # run issuer backend
 	cd issuer/ && go run cmd/main.go
 
 open-browser:
-	sleep 2;
+	sleep 4;
 	./scripts/open_browser.sh;
 
 setup-ngrok:
