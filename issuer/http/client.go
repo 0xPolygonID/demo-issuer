@@ -6,20 +6,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/go-chi/chi/middleware"
 	"github.com/pkg/errors"
 )
 
 // Client represents default http client that can be used to send requests to third party services
 type Client struct {
 	base http.Client
-}
-
-// NewClient returns new instance of custom client
-func NewClient(c http.Client) *Client {
-	return &Client{
-		base: c,
-	}
 }
 
 // Post send posts request to url with additional headers
@@ -30,8 +22,6 @@ func (c *Client) Post(ctx context.Context, url string, req []byte) ([]byte, erro
 	if err != nil {
 		return nil, err
 	}
-
-	addRequestIDToHeader(ctx, request)
 
 	return executeRequest(c, request)
 }
@@ -44,17 +34,7 @@ func (c *Client) Get(ctx context.Context, url string) ([]byte, error) {
 		return nil, err
 	}
 
-	addRequestIDToHeader(ctx, req)
-
 	return executeRequest(c, req)
-}
-
-// addRequestIDToHeader adds headers to request
-func addRequestIDToHeader(ctx context.Context, r *http.Request) {
-	requestID := middleware.GetReqID(ctx)
-
-	r.Header.Add("Content-Type", "application/json")
-	r.Header.Add(middleware.RequestIDHeader, requestID)
 }
 
 // executeRequest contains utils logic of request execution
