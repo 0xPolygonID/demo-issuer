@@ -351,7 +351,18 @@ func (i *Identity) GetRevocationProof(claim *core.Claim) (*merkletree.Proof, *bi
 func (i *Identity) PublishLatestState() error {
 	logger.Debug("PublishLatestState() invoked")
 
-	// TODO:
+	publisher := Publisher{Identity: i}
+	inputs, err := publisher.PrepareInputs()
+	if err != nil {
+		return err
+	}
+	proof, err := publisher.GenerateProof(inputs)
+	if err != nil {
+		return err
+	}
+
+	publisher.SendTx(proof)
+
 	return nil
 }
 

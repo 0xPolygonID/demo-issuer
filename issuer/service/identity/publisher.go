@@ -1,10 +1,17 @@
 package identity
 
 import (
+	"io"
 	"math/big"
+	"os"
+	"path/filepath"
 
 	"github.com/iden3/go-circuits"
 	"github.com/iden3/go-iden3-crypto/poseidon"
+	"github.com/iden3/go-rapidsnark/prover"
+	"github.com/iden3/go-rapidsnark/types"
+	"github.com/iden3/go-rapidsnark/witness"
+	"github.com/pkg/errors"
 )
 
 type Publisher struct {
@@ -64,6 +71,54 @@ func (p *Publisher) PrepareInputs() ([]byte, error) {
 	}
 
 	return stateTransitionInputs.InputsMarshal()
+
+}
+
+func (p *Publisher) GenerateProof(inputs []byte) (*types.ZKProof, error) {
+
+	wasmFile, err := os.Open(wasmPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "error opening wasm file")
+	}
+	defer wasmFile.Close()
+
+	wasm, err := io.ReadAll(wasmFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading wasm file")
+	}
+
+	calc, err := witness.NewCircom2WitnessCalculator(wasm, true)
+	if err != nil {
+		return nil, errors.New("can't create witness calculator")
+	}
+
+	parsedInputs, err := witness.ParseInputs(inputs)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	wtnsBytes, err := calc.CalculateWTNSBin(parsedInputs, true)
+	if err != nil {
+		return nil, errors.New("can't generate witnesses")
+	}
+
+	provingKeyFile, err := os.Open(filepath.Clean(provingKeyPath))
+	if err != nil {
+		return nil, errors.Wrap(err, "error opening provingKey file")
+	}
+	defer wasmFile.Close()
+
+	provingKey, err := io.ReadAll(provingKeyFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading provingKey file")
+	}
+
+	return prover.Groth16Prover(provingKey, wtnsBytes)
+}
+
+func (p *Publisher) SendTx(proof *types.ZKProof) error {
+	// TODO://
+	return nil
 
 }
 
