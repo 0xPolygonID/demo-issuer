@@ -195,6 +195,16 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
+	hi, hv, err := coreClaim.HiHv()
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.state.Claims.Tree.Add(context.TODO(), hi, hv)
+	if err != nil {
+		return nil, err
+	}
+
 	claimModel, err := claim.CoreClaimToClaimModel(coreClaim, cReq.Schema.URL, cReq.Schema.Type)
 	if err != nil {
 		return nil, err
