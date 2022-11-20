@@ -48,6 +48,8 @@ func newRouter(s *Server) chi.Router {
 			agent.Post("/", s.getAgent)
 		})
 
+		root.Post("/publish", s.publish)
+
 		root.Route("/sign-in", func(agent chi.Router) {
 			agent.Get("/", s.issuer.CommHandler.GetAuthVerificationRequest)
 		})

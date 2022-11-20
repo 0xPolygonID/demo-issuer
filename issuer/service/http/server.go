@@ -144,3 +144,15 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 
 	http2.EncodeResponse(w, http.StatusOK, res)
 }
+
+func (s *Server) publish(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.publish() invoked")
+
+	res, err := s.issuer.PublishLatestState()
+	if err != nil {
+		logger.Errorf("Server -> issuer.publish() return err, err: %v", err)
+		http2.EncodeResponse(w, http.StatusInternalServerError, "error on publishing latest state: "+err.Error())
+		return
+	}
+	http2.EncodeResponse(w, http.StatusOK, res)
+}
