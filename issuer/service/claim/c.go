@@ -28,15 +28,14 @@ var (
 )
 
 type Claim struct {
-	ID              uuid.UUID
-	Identifier      string
-	Issuer          string
-	SchemaHash      string
-	SchemaURL       string
-	SchemaType      string
-	OtherIdentifier string
-	Expiration      int64
-	// TODO(illia-korotia): delete from db but left in struct.
+	ID               uuid.UUID
+	Identifier       string
+	Issuer           string
+	SchemaHash       string
+	SchemaURL        string
+	SchemaType       string
+	OtherIdentifier  string
+	Expiration       int64
 	Updatable        bool
 	Revoked          bool
 	Version          uint32
@@ -211,38 +210,6 @@ func ConstructSigProof(authClaim *Claim, sig string) (*verifiable.BJJSignaturePr
 
 	return proof, nil
 }
-
-//func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
-//	hashIndex, hashValue, err := claim.CoreClaim.HiHv()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	commonHash, err := poseidon.Hash([]*big.Int{hashIndex, hashValue})
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	issuerMTP := &verifiable.Iden3SparseMerkleProof{}
-//	err = json.Unmarshal(claim.MTPProof, issuerMTP)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	sig, err := signFunc(commonHash)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// followed https://w3c-ccg.github.io/ld-proofs/
-//	proof := verifiable.BJJSignatureProof2021{}
-//	proof.Type = BabyJubSignatureType
-//	proof.Signature = hex.EncodeToString(sig)
-//	issuerMTP.IssuerData.AuthClaim = claim.CoreClaim
-//	proof.IssuerData = issuerMTP.IssuerData
-//
-//	return &proof, nil
-//}
 
 func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) {
 	claimIdPos, err := getClaimIdPosition(c.CoreClaim)

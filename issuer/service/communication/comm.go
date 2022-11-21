@@ -23,10 +23,6 @@ import (
 	"time"
 )
 
-// TODO:
-// 1. Update the new key dir direction to the new location
-// 2. Update the url to callback, only issuer url is relevant
-
 var userSessionTracker = cache.New(60*time.Minute, 60*time.Minute)
 
 func NewCommunicationHandler(issuerId string, cfg cfgs.IssuerConfig) *Handler {

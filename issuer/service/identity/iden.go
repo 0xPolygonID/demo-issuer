@@ -296,19 +296,7 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 	res.Issuer.State = stateHash.Hex()
 
 	return res, nil
-
 }
-
-// data should be a little-endian bytes representation of *big.Int.
-//func (i *Identity) signBytes(data []byte) ([]byte, error) {
-//	if len(data) > 32 {
-//		return nil, errors.New("data to signBytes is too large")
-//	}
-//
-//	z := new(big.Int).SetBytes(utils.SwapEndianness(data))
-//
-//	return i.sign(z)
-//}
 
 func (i *Identity) sign(z *big.Int) ([]byte, error) {
 	if !utils.CheckBigIntInField(z) {

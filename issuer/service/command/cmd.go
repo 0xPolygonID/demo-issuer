@@ -17,16 +17,12 @@ import (
 	"path/filepath"
 )
 
-// MaxBodySizeBytes defines is 2 MB for protocol message
-const MaxBodySizeBytes = 2 * 1000 * 1000
-
 // Handler provides handler for zk proof
 type Handler struct {
 	idenState *state.IdentityState
 	keysPath  string
 }
 
-// NewIDEN3CommHandler inits IDEN3Comm handler
 func NewHandler(
 	state *state.IdentityState,
 	keysPath string,
@@ -46,7 +42,6 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
-	// sepcific to the use case - need to change it
 	if basicMessage.Type != protocol.CredentialFetchRequestMessageType {
 		return nil, fmt.Errorf("unsupported protocol message type")
 	}
@@ -61,11 +56,6 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 	if err != nil {
 		return nil, err
 	}
-
-	//idHexB, err := hex.DecodeString(fetchRequestBody.ID)										// changed back to uuid
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	claimID, err := uuid.Parse(fetchRequestBody.ID)
 	if err != nil {

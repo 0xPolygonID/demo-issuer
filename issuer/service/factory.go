@@ -53,7 +53,6 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	// start service
 	s := http.NewServer(cfg.LocalUrl, issuer)
 
 	logger.Infof("spining up API server @%s", cfg.LocalUrl)

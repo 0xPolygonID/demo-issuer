@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { QRCode } from "react-qr-svg";
 import axios from "axios";
-import { makeClaimRequest} from "../utils/utils";
-import { useRouter } from "next/router";
 import { Layout } from "../components";
 import { Flex, Heading, Paragraph } from "theme-ui";
 
@@ -22,7 +20,6 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
       return false;
 
     } catch (err) {
-      // TODO: Error Handling
       console.log("err->", err);
       return false;
     }

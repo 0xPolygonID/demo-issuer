@@ -126,11 +126,6 @@ func (s *Server) createClaim(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validate
-
-	// convert to biz-model
-
-	// call issuer add claim
 	res, err := s.issuer.CreateClaim(req)
 	if err != nil {
 		logger.Errorf("Server -> issuer.CreateClaim() return err, err: %v", err)

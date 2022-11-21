@@ -25,7 +25,3 @@ func JsonToStruct(r *http.Request, target interface{}) error {
 
 	return nil
 }
-
-//func ValidateStruct(stct interface{}) (bool, error) {
-//	return govalidator.ValidateStruct(stct)
-//}
