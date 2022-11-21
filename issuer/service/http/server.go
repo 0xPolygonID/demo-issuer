@@ -3,17 +3,16 @@ package http
 import (
 	"context"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/cors"
-	"github.com/go-chi/render"
-	logger "github.com/sirupsen/logrus"
 	"io"
+	"net/http"
+	"strconv"
+
 	http2 "issuer/http"
 	"issuer/service/identity"
 	"issuer/service/models"
-	"net/http"
-	"strconv"
+
+	"github.com/go-chi/chi"
+	logger "github.com/sirupsen/logrus"
 )
 
 type Server struct {
@@ -45,62 +44,8 @@ func (s *Server) Run() error {
 
 	logger.Infof("starting HTTP server (address: %s)", s.address)
 
-	s.httpServer = &http.Server{Addr: s.address, Handler: s.newRouter()}
+	s.httpServer = &http.Server{Addr: s.address, Handler: newRouter(s)}
 	return s.httpServer.ListenAndServe()
-}
-
-func (s *Server) newRouter() chi.Router {
-	logger.Debug("Server.newRouter() invoked")
-
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-
-	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   []string{"localhost", "127.0.0.1", "*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		AllowCredentials: true,
-	})
-
-	r.Use(corsMiddleware.Handler)
-
-	r.Route("/api/v1", func(root chi.Router) {
-		root.Use(render.SetContentType(render.ContentTypeJSON))
-
-		root.Get("/identity", s.getIdentity)
-
-		root.Route("/claims", func(claims chi.Router) {
-			claims.Get("/{id}", s.getClaim)
-			claims.Post("/", s.createClaim)
-
-			claims.Route("/offers", func(claimRequests chi.Router) {
-				claimRequests.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
-			})
-
-			claims.Route("/revocations", func(revs chi.Router) {
-				revs.Get("/{nonce}", s.getRevocationStatus)
-			})
-
-		})
-
-		root.Route("/agent", func(agent chi.Router) {
-			agent.Post("/", s.getAgent)
-		})
-
-		root.Route("/sign-in", func(agent chi.Router) {
-			agent.Get("/", s.issuer.CommHandler.GetAuthRequest)
-		})
-		root.Route("/callback", func(agent chi.Router) {
-			agent.Post("/", s.issuer.CommHandler.Callback)
-		})
-		root.Route("/status", func(agent chi.Router) {
-			agent.Get("/", s.issuer.CommHandler.GetRequestStatus)
-		})
-
-	})
-
-	return r
 }
 
 func (s *Server) getIdentity(w http.ResponseWriter, r *http.Request) {
@@ -197,5 +142,21 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http2.EncodeResponse(w, http.StatusOK, res)
+}
+
+func (s *Server) publish(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.publish() invoked")
+
+	txHex, err := s.issuer.PublishLatestState(r.Context())
+	if err != nil {
+		logger.Errorf("Server -> issuer.publish() return err, err: %v", err)
+		http2.EncodeResponse(w, http.StatusInternalServerError, "error on publishing latest state: "+err.Error())
+		return
+	}
+
+	res := struct {
+		Hex string `json:"hex"`
+	}{Hex: txHex}
 	http2.EncodeResponse(w, http.StatusOK, res)
 }

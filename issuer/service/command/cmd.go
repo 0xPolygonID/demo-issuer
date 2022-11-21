@@ -71,7 +71,7 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, fmt.Errorf("invalid claim id in fetch request body, err: %v", err)
 	}
 
-	c, err := comm.idenState.ClaimsTree.GetClaim([]byte(claimID.String()))
+	c, err := comm.idenState.Claims.GetClaim([]byte(claimID.String()))
 	if err != nil {
 		return nil, err
 	}

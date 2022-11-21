@@ -3,7 +3,6 @@ package state
 import (
 	store "github.com/demonsh/smt-bolt"
 	"github.com/google/uuid"
-	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql"
@@ -14,16 +13,10 @@ import (
 )
 
 type IdentityState struct {
-	IsGenesis bool
-	State     merkletree.Hash
-	ClR       merkletree.Hash
-	ReR       merkletree.Hash
-	RoR       merkletree.Hash
-
-	ClaimsTree      *Claims
-	RevocationsTree *Revocations
-	RootsTree       *Roots
-	db              *db.DB
+	Claims      *Claims
+	Revocations *Revocations
+	Roots       *Roots
+	db          *db.DB
 }
 
 func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
@@ -49,26 +42,11 @@ func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
 		return nil, err
 	}
 
-	idenState := &IdentityState{
-		IsGenesis:       true,
-		ClaimsTree:      claims,
-		RevocationsTree: revs,
-		RootsTree:       roots,
-		db:              db,
-	}
-	err = idenState.UpdateState()
-	if err != nil {
-		return nil, err
-	}
-	return idenState, nil
-}
-
-func (is *IdentityState) ToCircuitTreeState() (circuits.TreeState, error) {
-	return circuits.TreeState{
-		State:          &is.State,
-		ClaimsRoot:     &is.ClR,
-		RevocationRoot: &is.ReR,
-		RootOfRoots:    &is.RoR,
+	return &IdentityState{
+		Claims:      claims,
+		Revocations: revs,
+		Roots:       roots,
+		db:          db,
 	}, nil
 }
 
@@ -92,7 +70,7 @@ func (is *IdentityState) SetupGenesisState(pk *babyjub.PublicKey) (*core.ID, *co
 		return nil, nil, err
 	}
 
-	currState := is.State
+	currState, err := is.GetStateHash()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,26 +119,21 @@ func (is *IdentityState) GetIdentityFromDB() (*core.ID, *uuid.UUID, error) {
 func (is *IdentityState) AddClaimToTree(c *core.Claim) error {
 	logger.Debug("IdentityState.AddClaimToTree() invoked")
 
-	return is.ClaimsTree.SaveClaimMT(c)
+	return is.Claims.SaveClaimMT(c)
 }
 
 func (is *IdentityState) AddClaimToDB(c *claim.Claim) error {
 	logger.Debug("IdentityState.AddClaimToDB() invoked")
 
-	return is.ClaimsTree.SaveClaimDB(c)
+	return is.Claims.SaveClaimDB(c)
 }
 
-func (is *IdentityState) UpdateState() error {
-	logger.Debug("IdentityState.UpdateState() invoked")
+func (is *IdentityState) GetStateHash() (*merkletree.Hash, error) {
+	logger.Debug("GetStateHash() invoked")
 
-	is.ClR = *is.ClaimsTree.Tree.Root()
-	is.ReR = *is.RevocationsTree.Tree.Root()
-	is.RoR = *is.RootsTree.Tree.Root()
-
-	ns, err := merkletree.HashElems(is.ClR.BigInt(), is.ReR.BigInt(), is.RoR.BigInt())
-	if err != nil {
-		return err
-	}
-	is.State = *ns
-	return nil
+	return merkletree.HashElems(
+		is.Claims.Tree.Root().BigInt(),
+		is.Revocations.Tree.Root().BigInt(),
+		is.Roots.Tree.Root().BigInt(),
+	)
 }

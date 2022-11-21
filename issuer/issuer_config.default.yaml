@@ -1,10 +1,14 @@
-log_level: INFO   # TRACE/DEBUG/INFO
+log_level: TRACE   # TRACE/DEBUG/INFO
 db_file_path: issuer.db
 key_dir: keys
 ipfs_url: ipfs.io
 identity:
-  secret_key: 30237d5b882221685f2926361ca7e81f1235d5faef02bcfbf99f459718bfd952
+  publishing_key: <eth_private_key>
+  secret_key: 30237d5b882221685f2926361ca7e81f1235d5faef02bcfbf99f459718bfd101
   merkle_tree_depth: 32
 
+node_url: <polygon_test_net_url>
+contract_address: 0x3a996b6BA69c5Aa12b3E1A6670f97d93aCaEfA73
+
 local_url: 'localhost:8001'
-public_url: https://0aa8-46-121-236-63.eu.ngrok.io
+public_url: https://35ed-77-70-94-216.eu.ngrok.io

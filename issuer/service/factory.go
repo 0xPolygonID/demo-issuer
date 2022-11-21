@@ -5,11 +5,13 @@ import (
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
 	database "issuer/db"
+	"issuer/service/blockchain"
 	"issuer/service/cfgs"
 	"issuer/service/http"
 	"issuer/service/identity"
 	"issuer/service/identity/state"
 	"issuer/service/schema"
+	"log"
 	"os"
 )
 
@@ -47,8 +49,14 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
+
+	chstore, err := blockchain.NewBlockchainConnect(cfg.NodeURL, cfg.ContractAddress, cfg.Identity.PublishingKey)
+	if err != nil {
+		log.Fatal("failed connect to chain", err)
+	}
+
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg)
+	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg, chstore)
 	if err != nil {
 		return err
 	}

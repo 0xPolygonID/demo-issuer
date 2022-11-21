@@ -2,10 +2,11 @@ package state
 
 import (
 	"context"
+	"math/big"
+
 	store "github.com/demonsh/smt-bolt"
 	"github.com/iden3/go-merkletree-sql"
 	logger "github.com/sirupsen/logrus"
-	"math/big"
 )
 
 type Revocations struct {
@@ -27,9 +28,9 @@ func NewRevocations(treeStorage *store.BoltStore, treeDepth int) (*Revocations, 
 }
 
 // GenerateRevocationProof generates the proof of existence (or non-existence) of an nonce in RevocationTree
-func (r *Revocations) GenerateRevocationProof(nonce *big.Int) (*merkletree.Proof, error) {
+func (r *Revocations) GenerateRevocationProof(nonce *big.Int, root *merkletree.Hash) (*merkletree.Proof, error) {
 	logger.Debugf("GenerateRevocationProof() invoked with nonce of %d", nonce)
 
-	proof, _, err := r.Tree.GenerateProof(context.Background(), nonce, r.Tree.Root())
+	proof, _, err := r.Tree.GenerateProof(context.Background(), nonce, root)
 	return proof, err
 }

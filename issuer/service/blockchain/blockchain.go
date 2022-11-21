@@ -3,6 +3,7 @@ package blockchain
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/misc"
@@ -18,7 +19,7 @@ import (
 	"log"
 	"math"
 	"math/big"
-	"sync"
+	"time"
 )
 
 type TransitionInfo struct {
@@ -29,17 +30,30 @@ type TransitionInfo struct {
 	Proof             *models.ZKProof
 }
 
-type PublisherServer struct {
-	rw              *sync.Mutex
+type Blockchain struct {
 	client          *ethclient.Client
 	contractAddress common.Address
 	privateKey      *ecdsa.PrivateKey
 }
 
-func (ps *PublisherServer) UpdateState(ctx context.Context, trInfo *TransitionInfo) (string, error) {
-	ps.rw.Lock()
-	defer ps.rw.Unlock()
+func NewBlockchainConnect(nodeAddress, contractAddress, pk string) (*Blockchain, error) {
+	privateKey, err := crypto.HexToECDSA(pk)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	ethClient, err := ethclient.Dial(nodeAddress)
+	if err != nil {
+		return nil, err
+	}
+	return &Blockchain{
+		client:          ethClient,
+		contractAddress: common.HexToAddress(contractAddress),
+		privateKey:      privateKey,
+	}, nil
+}
+
+func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *TransitionInfo) (string, error) {
 	if trInfo.NewState.Equals(trInfo.LatestState) {
 		return "", errors.New("state hasn't been changed")
 	}
@@ -65,17 +79,57 @@ func (ps *PublisherServer) UpdateState(ctx context.Context, trInfo *TransitionIn
 	return tx.Hash().Hex(), nil
 }
 
-func (ps *PublisherServer) WaitTransaction(ctx context.Context, txHash string) <-chan struct{} {
-	done := make(chan struct{})
-
-	receipt, err := ps.client.TransactionReceipt(ctx, common.HexToHash(txHash))
+func (ps *Blockchain) WaitTransaction(ctx context.Context, txHex string) error {
+	txID := common.HexToHash(txHex)
+	receipt, err := ps.waitingReceipt(ctx, txID)
 	if err != nil {
-		log.Println("failed g")
-		close(done)
+		return err
 	}
+	return ps.waitConfirmation(ctx, txID, receipt.BlockNumber.Uint64())
 }
 
-func (ps *PublisherServer) sendTransaction(ctx context.Context, from, to common.Address, payload []byte) (*types.Transaction, error) {
+func (ps *Blockchain) waitConfirmation(ctx context.Context, hash common.Hash, formBlock uint64) error {
+	tryCount := 100
+	for tryCount > 0 {
+		latestBlock, err := ps.client.BlockNumber(ctx)
+		if err != nil {
+			return err
+		}
+		diff := latestBlock - formBlock
+		if diff > 10 {
+			return nil
+		}
+		tryCount--
+		time.Sleep(time.Second * 5)
+	}
+	return fmt.Errorf("transaction '%s' is stuck", hash)
+}
+
+func (ps *Blockchain) waitingReceipt(ctx context.Context, hash common.Hash) (*types.Receipt, error) {
+	tryCount := 100
+	for tryCount > 0 {
+		receipt, err := ps.client.TransactionReceipt(ctx, hash)
+		if err != nil && errors.Is(err, ethereum.NotFound) {
+			log.Printf("transaction '%s' not found\n", hash)
+			tryCount--
+			time.Sleep(time.Second * 5)
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+
+		if receipt.Status == types.ReceiptStatusFailed {
+			return nil, fmt.Errorf("transaciton '%s' failed", hash)
+		}
+		if receipt.Status == types.ReceiptStatusSuccessful {
+			return receipt, nil
+		}
+		return nil, fmt.Errorf("unknown tx type '%d'", receipt.Status)
+	}
+	return nil, fmt.Errorf("all attempts are used")
+}
+
+func (ps *Blockchain) sendTransaction(ctx context.Context, from, to common.Address, payload []byte) (*types.Transaction, error) {
 	nonce, err := ps.client.PendingNonceAt(ctx, from)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get nonce")
@@ -139,7 +193,7 @@ func (ps *PublisherServer) sendTransaction(ctx context.Context, from, to common.
 	return signedTx, nil
 }
 
-func (ps *PublisherServer) getStatePayload(ti *TransitionInfo) ([]byte, error) {
+func (ps *Blockchain) getStatePayload(ti *TransitionInfo) ([]byte, error) {
 	a, b, c, err := ti.Proof.ProofToBigInts()
 	if err != nil {
 		return nil, err

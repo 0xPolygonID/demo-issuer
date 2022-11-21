@@ -27,7 +27,7 @@ import (
 // 1. Update the new key dir direction to the new location
 // 2. Update the url to callback, only issuer url is relevant
 
-var requestTracker = cache.New(60*time.Minute, 60*time.Minute)
+var userSessionTracker = cache.New(60*time.Minute, 60*time.Minute)
 
 func NewCommunicationHandler(issuerId string, cfg cfgs.IssuerConfig) *Handler {
 	return &Handler{
@@ -44,8 +44,8 @@ type Handler struct {
 }
 
 // sending sign in request to the client (move it to the issuer communication (identity))
-func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
-	logger.Debug("Handler.GetAuthRequest() invoked")
+func (h *Handler) GetAuthVerificationRequest(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Handler.GetAuthVerificationRequest() invoked")
 
 	sessionID := rand.Intn(1000000)
 
@@ -53,7 +53,6 @@ func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 	if len(hostUrl) == 0 {
 		log.Fatal("host-url is not set")
 	}
-	t := r.URL.Query().Get("type")
 	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
 
 	var request protocol.AuthorizationRequestMessage
@@ -62,29 +61,63 @@ func (h *Handler) GetAuthRequest(w http.ResponseWriter, r *http.Request) {
 	request.ID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
 	request.ThreadID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
 
-	if t != "" {
-		var mtpProofRequest protocol.ZeroKnowledgeProofRequest
-		mtpProofRequest.ID = 1
-		mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigCircuitID)
-		mtpProofRequest.Rules = map[string]interface{}{
-			"query": pubsignals.Query{
-				AllowedIssuers: []string{"*"},
-				Req: map[string]interface{}{
-					"birthday": map[string]interface{}{
-						"$lt": 20000101,
-					},
-				},
-				Schema: protocol.Schema{
-					URL:  "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v2.json-ld",
-					Type: "KYCAgeCredential",
-				},
-			},
-		}
-		request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
+	sId := strconv.Itoa(sessionID)
+	userSessionTracker.Set(sId, request, cache.DefaultExpiration)
+
+	msgBytes, err := json.Marshal(request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "x-id")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("x-id", strconv.Itoa(sessionID))
+	w.WriteHeader(http.StatusOK)
+
+	w.Write(msgBytes)
+	return
+}
+
+func (h *Handler) GetAgeVerificationRequest(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Handler.GetAgeVerificationRequest() invoked")
+
+	sessionID := rand.Intn(1000000)
+
+	hostUrl := h.publicUrl
+	if len(hostUrl) == 0 {
+		log.Fatal("host-url is not set")
+	}
+	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", hostUrl, strconv.Itoa(sessionID))
+
+	var request protocol.AuthorizationRequestMessage
+	request = auth.CreateAuthorizationRequestWithMessage("test flow", "message to sign", "1125GJqgw6YEsKFwj63GY87MMxPL9kwDKxPUiwMLNZ", uri)
+
+	request.ID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
+	request.ThreadID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
+
+	var mtpProofRequest protocol.ZeroKnowledgeProofRequest
+	mtpProofRequest.ID = 1
+	mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigCircuitID)
+	mtpProofRequest.Rules = map[string]interface{}{
+		"query": pubsignals.Query{
+			AllowedIssuers: []string{"*"},
+			Req: map[string]interface{}{
+				"birthday": map[string]interface{}{
+					"$lt": 20000101,
+				},
+			},
+			Schema: protocol.Schema{
+				URL:  "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v2.json-ld",
+				Type: "KYCAgeCredential",
+			},
+		},
+	}
+	request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
+
 	sId := strconv.Itoa(sessionID)
-	requestTracker.Set(sId, request, cache.DefaultExpiration)
+	userSessionTracker.Set(sId, request, cache.DefaultExpiration)
 
 	msgBytes, err := json.Marshal(request)
 	if err != nil {
@@ -139,28 +172,6 @@ func (h *Handler) GetAgeClaimOffer(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// currently in the frontend but need to move here
-//func (h *Handler) getOfferClaimRequest() (*protocol.CredentialsOfferMessage, error) {
-//	logger.Debug("Handler.getOfferClaimRequest() invoked")
-//
-//	return &protocol.CredentialsOfferMessage{
-//		ID:       "7f38a193-0918-4a48-9fac-36adfdb8b542",
-//		Typ:      "application/iden3comm-plain-json",
-//		Type:     "https://iden3-communication.io/credentials/1.0/offer",
-//		ThreadID: "f7a3fae9-ecf1-4603-804e-8ff1c7632636",
-//		Body: protocol.CredentialsOfferMessageBody{
-//			URL: h.cfg.PublicUrl + `/api/v1/agent`,
-//			Credentials: []protocol.CredentialOffer{
-//				protocol.CredentialOffer{
-//					ID:          "7f38a193-0918-4a48-", // mock value - need to fix this (claim id in the front end)
-//					Description: "KYCAgeCredential",
-//				},
-//			}},
-//		From: "123214512", // mock value - need to fix this
-//		To:   "issuerId",  // mock value - need to fix this
-//	}, nil
-//}
-
 // Handle the sign in response from the user
 // Callback works with sign-in callbacks
 func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +199,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 
 		var verificationKeyloader = &loaders.FSKeyLoader{Dir: keyDIR}
 		verifier := auth.NewVerifier(verificationKeyloader, loaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolver)
-		authRequest, wasFound := requestTracker.Get(sessionID)
+		authRequest, wasFound := userSessionTracker.Get(sessionID)
 		if wasFound == false {
 			logger.Errorf("auth request was not found for session ID:", sessionID)
 			http.Error(w, "no request", http.StatusBadRequest)
@@ -212,7 +223,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// TODO: Where is this being used in production?
-		requestTracker.Set(sessionID, m, cache.DefaultExpiration)
+		userSessionTracker.Set(sessionID, m, cache.DefaultExpiration)
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
@@ -233,7 +244,7 @@ func (h *Handler) GetRequestStatus(w http.ResponseWriter, r *http.Request) {
 
 	id := r.URL.Query().Get("id")
 	logger.Tracef("cache - getting id %s from cahce\n", id)
-	item, ok := requestTracker.Get(id)
+	item, ok := userSessionTracker.Get(id)
 	if !ok {
 		logger.Tracef("item not found %v", id)
 		http.NotFound(w, r)

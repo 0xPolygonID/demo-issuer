@@ -13,6 +13,7 @@ type IssuerConfig struct {
 }
 
 type Identity struct {
+	PublishingKey   string `mapstructure:"PUBLISHING_KEY" yaml:"publishing_key"`
 	SecretKey       string `mapstructure:"SECRET_KEY" yaml:"secret_key"`
 	MerkleTreeDepth int    `mapstructure:"MERKLE_TREE_DEPTH" yaml:"merkle_tree_depth"`
 }

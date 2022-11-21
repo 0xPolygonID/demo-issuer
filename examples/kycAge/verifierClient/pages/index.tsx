@@ -5,28 +5,22 @@ import { makeClaimRequest} from "../utils/utils";
 import { useRouter } from "next/router";
 import { Layout } from "../components";
 import { Flex, Heading, Paragraph } from "theme-ui";
-import fs from "fs";
 
 const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const [loading, setLoading] = useState(true);
   const [qrData, setQRData] = useState({});
 
-  const router = useRouter();
-
-  const checkAuthStatus = async (sessionID: string) => {
+  const checkVerificationStatus = async (sessionID: string) => {
     try {
       const resp = await axios.get(
           "http://" +props.issuerLocalUrl + `/api/v1/status?id=${sessionID}`
       );
-
-      const userID = resp.data.id;
-
-      if (userID) {
-        const resp = await axios(makeClaimRequest(userID, props));
-        // TODO: Error Handling
-        const claimID = resp.data.id ? resp.data.id : "";
-        return { claimID, userID };
+      if (resp.status === 200) {
+        return true;
       }
+
+      return false;
+
     } catch (err) {
       // TODO: Error Handling
       console.log("err->", err);
@@ -37,7 +31,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   useEffect(() => {
     (async () => {
       const resp = await axios.get(
-          "http://" +props.issuerLocalUrl + "/api/v1/sign-in?type=random"
+          "http://" +props.issuerLocalUrl + "/api/v1/age-verification-request"
       );
 
       setQRData(resp.data);
@@ -46,8 +40,8 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
       const sessionID = resp.headers["x-id"];
 
       const interval = setInterval(async () => {
-        const resp = await checkAuthStatus(sessionID);
-        if (resp) {
+        const isVerified = await checkVerificationStatus(sessionID);
+        if (isVerified) {
           clearInterval(interval);
           alert("verification succeeded ✅");
         }
