@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
+	"github.com/iden3/go-merkletree-sql"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/pkg/errors"
 	"issuer/service/schema"
 	"issuer/service/utils"
 	"math/big"
@@ -48,7 +51,65 @@ type Claim struct {
 	IdentityState    *string
 	Status           string
 	CredentialStatus []byte
-	HIndex           string
+	HIndex           string // TODO(illia-korotia): is delete?
+}
+
+func (c *Claim) NewCircuitClaimData() (circuits.Claim, error) {
+	var circuitClaim circuits.Claim
+	if c == nil {
+		return circuitClaim, errors.New("claim is nil")
+	}
+
+	var err error
+
+	circuitClaim.Claim = c.CoreClaim
+
+	var proof verifiable.Iden3SparseMerkleProof
+	err = json.Unmarshal(c.MTPProof, proof)
+	if err != nil {
+		return circuitClaim, errors.WithStack(err)
+	}
+	circuitClaim.Proof = proof.MTP
+
+	issuerID, err := core.IDFromString(c.Issuer)
+	if err != nil {
+		return circuitClaim, errors.WithStack(err)
+	}
+
+	circuitClaim.IssuerID = &issuerID
+
+	circuitClaim.TreeState = circuits.TreeState{
+		State:          strMTHex(proof.IssuerData.State.Value),
+		ClaimsRoot:     strMTHex(proof.IssuerData.State.ClaimsTreeRoot),
+		RevocationRoot: strMTHex(proof.IssuerData.State.RevocationTreeRoot),
+		RootOfRoots:    strMTHex(proof.IssuerData.State.RootOfRoots),
+	}
+
+	var sigProof verifiable.BJJSignatureProof2021
+	err = json.Unmarshal(c.SignatureProof, &sigProof)
+	if err != nil {
+		return circuitClaim, errors.WithStack(err)
+	}
+
+	signature, err := BJJSignatureFromHexString(sigProof.Signature)
+	if err != nil {
+		return circuitClaim, errors.WithStack(err)
+	}
+
+	circuitClaim.SignatureProof = circuits.BJJSignatureProof{
+		IssuerID: sigProof.IssuerData.ID,
+		IssuerTreeState: circuits.TreeState{
+			State:          strMTHex(sigProof.IssuerData.State.Value),
+			ClaimsRoot:     strMTHex(sigProof.IssuerData.State.ClaimsTreeRoot),
+			RevocationRoot: strMTHex(sigProof.IssuerData.State.RevocationTreeRoot),
+			RootOfRoots:    strMTHex(sigProof.IssuerData.State.RootOfRoots),
+		},
+		IssuerAuthClaimMTP: sigProof.IssuerData.MTP,
+		Signature:          signature,
+		IssuerAuthClaim:    sigProof.IssuerData.AuthClaim,
+	}
+
+	return circuitClaim, err
 }
 
 type CoreClaimData struct {
@@ -59,6 +120,7 @@ type CoreClaimData struct {
 	Version         uint32
 	Nonce           *uint64
 	SubjectPosition string
+	State           string
 }
 
 // GenerateCoreClaim generate core claim via settings from CoreClaimData.
@@ -212,6 +274,18 @@ func ConstructSigProof(authClaim *Claim, sig string) (*verifiable.BJJSignaturePr
 	return proof, nil
 }
 
+// BJJSignatureFromHexString converts hex to  babyjub.Signature
+func BJJSignatureFromHexString(sigHex string) (*babyjub.Signature, error) {
+	signatureBytes, err := hex.DecodeString(sigHex)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	var sig [64]byte
+	copy(sig[:], signatureBytes)
+	bjjSig, err := new(babyjub.Signature).Decompress(sig)
+	return bjjSig, errors.WithStack(err)
+}
+
 //func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
 //	hashIndex, hashValue, err := claim.CoreClaim.HiHv()
 //	if err != nil {
@@ -324,4 +398,15 @@ func subjectPositionIDToString(p core.IDPosition) (string, error) {
 	default:
 		return "", fmt.Errorf("id position is not specified")
 	}
+}
+
+func strMTHex(s *string) *merkletree.Hash {
+	if s == nil {
+		return &merkletree.HashZero
+	}
+	h, err := merkletree.NewHashFromHex(*s)
+	if err != nil {
+		return &merkletree.HashZero
+	}
+	return h
 }

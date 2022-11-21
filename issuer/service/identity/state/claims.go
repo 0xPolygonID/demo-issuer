@@ -56,3 +56,9 @@ func (c *Claims) SaveClaimMT(claim *core.Claim) error {
 
 	return c.Tree.Add(context.Background(), i, v)
 }
+
+func (c *Claims) GetAllClaims() ([]claim.Claim, error) {
+	logger.Debugf("GetAllClaims() invoked")
+
+	return c.db.GetAllClaims()
+}
