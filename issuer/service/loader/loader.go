@@ -12,7 +12,7 @@ import (
 const (
 	wasmFile         = "circuit.wasm"
 	verificationFile = "verification_key.json"
-	proofingKeyFile  = "circuit_final.zkey" // TODO(illia-korotia): naming
+	proofingKeyFile  = "circuit_final.zkey"
 )
 
 type Loader struct {
