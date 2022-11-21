@@ -35,7 +35,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating identity state")
-	idenState, err := state.NewIdentityState(db, cfg.Identity.MerkleTreeDepth)
+	idenState, err := state.NewIdentityState(db)
 	if err != nil {
 		return err
 	}

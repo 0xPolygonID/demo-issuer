@@ -12,6 +12,8 @@ import (
 	"issuer/service/schema"
 )
 
+const treeDepth = 32
+
 type IdentityState struct {
 	Claims      *Claims
 	Revocations *Revocations
@@ -19,7 +21,7 @@ type IdentityState struct {
 	db          *db.DB
 }
 
-func NewIdentityState(db *db.DB, treeDepth int) (*IdentityState, error) {
+func NewIdentityState(db *db.DB) (*IdentityState, error) {
 	logger.Debug("creating new identity state")
 
 	treeStorage, err := store.NewBoltStorage(db.GetConnection())

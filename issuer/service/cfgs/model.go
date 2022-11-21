@@ -8,9 +8,9 @@ type IssuerConfig struct {
 	LocalUrl   string   `mapstructure:"LOCAL_URL" yaml:"local_url"`
 	Identity   Identity `mapstructure:"IDENTITY" yaml:"identity"`
 	IpfsUrl    string   `mapstructure:"IPFS_URL" yaml:"ipfs_url"`
+	NodeRpcUrl string   `mapstructure:"NODE_RPC_URL" yaml:"node_rpc_url"`
 }
 
 type Identity struct {
-	SecretKey       string `mapstructure:"SECRET_KEY" yaml:"secret_key"`
-	MerkleTreeDepth int    `mapstructure:"MERKLE_TREE_DEPTH" yaml:"merkle_tree_depth"`
+	SecretKey string `mapstructure:"SECRET_KEY" yaml:"secret_key"`
 }

@@ -17,6 +17,15 @@ func EncodeResponse(w http.ResponseWriter, statusCode int, res interface{}) {
 	}
 }
 
+func EncodeByteResponse(w http.ResponseWriter, statusCode int, res []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_, err := w.Write(res)
+	if err != nil {
+		logger.Error(err)
+	}
+}
+
 func JsonToStruct(r *http.Request, target interface{}) error {
 	err := codec.NewDecoder(r.Body, &jsonHandle).Decode(target)
 	if err != nil {

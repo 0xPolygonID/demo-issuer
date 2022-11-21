@@ -70,8 +70,8 @@ func (s *Server) newRouter() chi.Router {
 		root.Get("/identity", s.getIdentity)
 
 		root.Route("/requests", func(reqs chi.Router) {
-			reqs.Get("/auth", s.issuer.CommHandler.GetAuthVerificationRequest)
-			reqs.Get("/age-kyc", s.issuer.CommHandler.GetAgeVerificationRequest)
+			reqs.Get("/auth", s.getAuthVerificationRequest)
+			reqs.Get("/age-kyc", s.getAgeVerificationRequest)
 		})
 
 		root.Route("/claims", func(claims chi.Router) {
@@ -79,26 +79,24 @@ func (s *Server) newRouter() chi.Router {
 			claims.Post("/", s.createClaim)
 
 			claims.Route("/offers", func(claimRequests chi.Router) {
-				claimRequests.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
+				claimRequests.Get("/{user-id}/{claim-id}", s.getAgeClaimOffer)
 			})
 
 			claims.Route("/revocations", func(revs chi.Router) {
 				revs.Get("/{nonce}", s.getRevocationStatus)
 			})
-
 		})
 
 		root.Route("/agent", func(agent chi.Router) {
-			agent.Post("/", s.getAgent)
+			agent.Post("/", s.agent)
 		})
 
 		root.Route("/callback", func(agent chi.Router) {
-			agent.Post("/", s.issuer.CommHandler.Callback)
+			agent.Post("/", s.callback)
 		})
 		root.Route("/status", func(agent chi.Router) {
-			agent.Get("/", s.issuer.CommHandler.GetRequestStatus)
+			agent.Get("/", s.getRequestStatus)
 		})
-
 	})
 
 	return r
@@ -162,7 +160,7 @@ func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
 
 	nonce, err := strconv.ParseUint(chi.URLParam(r, "nonce"), 10, 64)
 	if err != nil {
-		logger.Errorf("Server error on parsing nonce, err: %v", err)
+		logger.Errorf("error on parsing nonce, err: %v", err)
 		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("error on parsing nonce input"))
 		return
 	}
@@ -176,12 +174,108 @@ func (s *Server) getRevocationStatus(w http.ResponseWriter, r *http.Request) {
 	EncodeResponse(w, http.StatusOK, res)
 }
 
-func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
-	logger.Debug("Server.getAgent() invoked")
+func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.callback() invoked")
+
+	sessionID := r.URL.Query().Get("sessionId")
+	tokenBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Errorf("Server.callback() error reading request body, err: %v", err)
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("can't read request body"))
+		return
+	}
+
+	resB, err := s.issuer.CommHandler.Callback(sessionID, tokenBytes)
+	if err != nil {
+		logger.Errorf("Server.callback() return err, err: %v", err)
+		EncodeResponse(w, http.StatusInternalServerError, fmt.Errorf("can't handle callback request"))
+		return
+	}
+
+	EncodeByteResponse(w, http.StatusOK, resB)
+}
+
+func (s *Server) getRequestStatus(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getRequestStatus() invoked")
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		logger.Errorf("Server.getRequestStatus() url parameter has invalid values")
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("url parameter has invalid values"))
+		return
+	}
+
+	resB, err := s.issuer.CommHandler.GetRequestStatus(id)
+	if err != nil {
+		logger.Errorf("Server -> issuer.CommHandler.GetRequestStatus() return err, err: %v", err)
+		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't get request status. err: %v", err))
+		return
+	}
+
+	if resB == nil {
+		EncodeResponse(w, http.StatusNotFound, fmt.Errorf("can't get request status with id: %s", id))
+		return
+	}
+
+	EncodeByteResponse(w, http.StatusOK, resB)
+}
+
+func (s *Server) getAgeClaimOffer(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getAgeClaimOffer() invoked")
+
+	userId := chi.URLParam(r, "user-id")
+	claimId := chi.URLParam(r, "claim-id")
+	if userId == "" || claimId == "" {
+		logger.Errorf("Server.getAgeClaimOffer() url parameters has invalid values")
+		EncodeResponse(w, http.StatusBadRequest, fmt.Errorf("url parameters has invalid values"))
+		return
+	}
+
+	resB, err := s.issuer.CommHandler.GetAgeClaimOffer(userId, claimId)
+	if err != nil {
+		logger.Errorf("Server -> issuer.CommHandler.getAgeClaimOffer() return err, err: %v", err)
+		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't get age claim offer. err: %v", err))
+		return
+	}
+
+	EncodeByteResponse(w, http.StatusOK, resB)
+}
+
+func (s *Server) getAuthVerificationRequest(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getAuthVerificationRequest() invoked")
+
+	resB, sessionId, err := s.issuer.CommHandler.GetAuthVerificationRequest()
+	if err != nil {
+		logger.Errorf("Server -> issuer.CommHandler.GetAuthVerificationRequest() return err, err: %v", err)
+		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't get auth verification request. err: %v", err))
+		return
+	}
+	w.Header().Set("Access-Control-Expose-Headers", "x-id")
+	w.Header().Set("x-id", sessionId)
+	EncodeByteResponse(w, http.StatusOK, resB)
+}
+
+func (s *Server) getAgeVerificationRequest(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.getAgeVerificationRequest() invoked")
+
+	resB, sessionId, err := s.issuer.CommHandler.GetAgeVerificationRequest()
+	if err != nil {
+		logger.Errorf("Server -> issuer.CommHandler.GetAuthVerificationRequest() return err, err: %v", err)
+		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't get auth verification request. err: %v", err))
+		return
+	}
+
+	w.Header().Set("Access-Control-Expose-Headers", "x-id")
+	w.Header().Set("x-id", sessionId)
+	EncodeByteResponse(w, http.StatusOK, resB)
+}
+
+func (s *Server) agent(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Server.agent() invoked")
 
 	bodyB, err := io.ReadAll(r.Body)
 	if err != nil {
-		logger.Errorf("Server error on parsing request body (getAgent), err: %v", err)
+		logger.Errorf("Server error on parsing request body (agent), err: %v", err)
 		EncodeResponse(w, http.StatusBadRequest, "can't parse request, err: "+err.Error())
 		return
 	}

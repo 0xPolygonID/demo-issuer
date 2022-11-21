@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 )
 
-// Handler provides handler for zk proof
 type Handler struct {
 	idenState *state.IdentityState
 	keysPath  string
