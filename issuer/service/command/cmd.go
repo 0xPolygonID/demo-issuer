@@ -1,7 +1,6 @@
 package command
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
@@ -11,28 +10,25 @@ import (
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
+	"io"
 	"issuer/service/claim"
 	"issuer/service/identity/state"
-	"issuer/service/loader"
+	"os"
+	"path/filepath"
 )
 
-// MaxBodySizeBytes defines is 2 MB for protocol message
-const MaxBodySizeBytes = 2 * 1000 * 1000
-
-// Handler provides handler for zk proof
 type Handler struct {
 	idenState *state.IdentityState
-	loader    *loader.Loader
+	keysPath  string
 }
 
-// NewIDEN3CommHandler inits IDEN3Comm handler
 func NewHandler(
 	state *state.IdentityState,
-	loader *loader.Loader,
+	keysPath string,
 ) *Handler {
 	return &Handler{
 		idenState: state,
-		loader:    loader,
+		keysPath:  keysPath,
 	}
 }
 
@@ -45,7 +41,6 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
-	// sepcific to the use case - need to change it
 	if basicMessage.Type != protocol.CredentialFetchRequestMessageType {
 		return nil, fmt.Errorf("unsupported protocol message type")
 	}
@@ -60,11 +55,6 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 	if err != nil {
 		return nil, err
 	}
-
-	//idHexB, err := hex.DecodeString(fetchRequestBody.ID)										// changed back to uuid
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	claimID, err := uuid.Parse(fetchRequestBody.ID)
 	if err != nil {
@@ -105,7 +95,7 @@ func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
 		return nil, err
 	}
 
-	verificationKey, err := comm.loader.VerificationKey(context.Background(), "auth")
+	verificationKey, err := getVerificationKey(comm.keysPath) // comm.loader.VerificationKey(context.Background(), "auth")
 	if err != nil {
 		return nil, errors.New("message was packed with unsupported circuit")
 	}
@@ -134,4 +124,25 @@ func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
 	}
 
 	return msg, err
+}
+
+func getVerificationKey(basePath string) ([]byte, error) {
+	logger.Debug("CommandHandler.getVerificationKey() invoked")
+
+	return getPathToFile(basePath, "auth.json")
+}
+
+func getPathToFile(basePath string, fileName string) ([]byte, error) {
+	logger.Debug("CommandHandler.getPathToFile() invoked")
+
+	path := filepath.Join(basePath, fileName)
+	f, err := os.Open(filepath.Clean(path))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed open file '%s' by path '%s'", fileName, path)
+	}
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed read file '%s' by path '%s'", fileName, path)
+	}
+	return data, nil
 }

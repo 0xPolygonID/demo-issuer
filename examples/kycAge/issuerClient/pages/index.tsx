@@ -14,7 +14,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   useEffect(() => {
     (async () => {
 
-      const resp = await axios.get("http://" + props.issuerLocalUrl + "/api/v1/sign-in");
+      const resp = await axios.get("http://" + props.issuerLocalUrl + "/api/v1/requests/auth");
 
       setQRData(resp.data);
       setLoading(false);

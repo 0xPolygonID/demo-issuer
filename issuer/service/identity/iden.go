@@ -82,7 +82,7 @@ func New(
 
 	l := loader.NewLoader(cfg.KeyDir)
 	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
-	iden.CmdHandler = command.NewHandler(iden.state, l)
+	iden.CmdHandler = command.NewHandler(iden.state, cfg.KeyDir)
 	iden.loaderService = l
 
 	return iden, nil
@@ -357,7 +357,6 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 	res.Issuer.State = stateHash.Hex()
 
 	return res, nil
-
 }
 
 func (i *Identity) PublishLatestState(ctx context.Context) (string, error) {
