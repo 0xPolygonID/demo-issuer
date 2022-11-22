@@ -16,25 +16,23 @@ import (
 	"issuer/service/command"
 	"issuer/service/communication"
 	"issuer/service/identity/state"
-	"issuer/service/loader"
 	issuer_contract "issuer/service/models"
 	"issuer/service/schema"
 	"math/big"
 )
 
 type Identity struct {
-	sk          babyjub.PrivateKey
-	Identifier  *core.ID
-	authClaimId *uuid.UUID
-	authClaim   *core.Claim
-	publicUrl   string
+	sk           babyjub.PrivateKey
+	Identifier   *core.ID
+	authClaimId  *uuid.UUID
+	authClaim    *core.Claim
+	publicUrl    string
+	circuitsPath string
 
 	state         *state.IdentityState
 	CmdHandler    *command.Handler
 	CommHandler   *communication.Handler
 	schemaBuilder *schema.Builder
-
-	loaderService *loader.Loader
 	stateStore    StateStore
 }
 
@@ -49,9 +47,10 @@ func New(
 		state:         s,
 		schemaBuilder: schemaBuilder,
 
-		sk:         sk,
-		publicUrl:  cfg.PublicUrl,
-		stateStore: stateStore,
+		sk:           sk,
+		publicUrl:    cfg.PublicUrl,
+		circuitsPath: cfg.KeyDir,
+		stateStore:   stateStore,
 	}
 
 	id, authClaimId, err := iden.state.GetIdentityFromDB()
@@ -80,10 +79,8 @@ func New(
 		}
 	}
 
-	l := loader.NewLoader(cfg.KeyDir)
 	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
 	iden.CmdHandler = command.NewHandler(iden.state, cfg.KeyDir)
-	iden.loaderService = l
 
 	return iden, nil
 }
@@ -355,9 +352,9 @@ func (i *Identity) PublishLatestState(ctx context.Context) (string, error) {
 	logger.Debug("PublishLatestState() invoked")
 
 	publisher := Publisher{
-		i:          i,
-		loader:     i.loaderService,
-		stateStore: i.stateStore,
+		i:            i,
+		circuitsPath: i.circuitsPath,
+		stateStore:   i.stateStore,
 	}
 	inputs, err := publisher.PrepareInputs()
 	if err != nil {

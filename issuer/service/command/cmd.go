@@ -10,11 +10,9 @@ import (
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"io"
 	"issuer/service/claim"
 	"issuer/service/identity/state"
-	"os"
-	"path/filepath"
+	"issuer/utils"
 )
 
 type Handler struct {
@@ -95,7 +93,7 @@ func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
 		return nil, err
 	}
 
-	verificationKey, err := getVerificationKey(comm.keysPath) // comm.loader.VerificationKey(context.Background(), "auth")
+	verificationKey, err := utils.ReadFileByPath(comm.keysPath, "auth.json")
 	if err != nil {
 		return nil, errors.New("message was packed with unsupported circuit")
 	}
@@ -124,25 +122,4 @@ func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
 	}
 
 	return msg, err
-}
-
-func getVerificationKey(basePath string) ([]byte, error) {
-	logger.Debug("CommandHandler.getVerificationKey() invoked")
-
-	return getPathToFile(basePath, "auth.json")
-}
-
-func getPathToFile(basePath string, fileName string) ([]byte, error) {
-	logger.Debug("CommandHandler.getPathToFile() invoked")
-
-	path := filepath.Join(basePath, fileName)
-	f, err := os.Open(filepath.Clean(path))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed open file '%s' by path '%s'", fileName, path)
-	}
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed read file '%s' by path '%s'", fileName, path)
-	}
-	return data, nil
 }

@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"issuer/service/identity/state"
-	"issuer/service/loader"
 	"issuer/service/models"
+	"issuer/utils"
 	"math/big"
 )
 
@@ -36,9 +36,9 @@ type StateStore interface {
 }
 
 type Publisher struct {
-	i          *Identity
-	loader     *loader.Loader
-	stateStore StateStore
+	i            *Identity
+	stateStore   StateStore
+	circuitsPath string
 }
 
 func (p *Publisher) PrepareInputs() ([]byte, error) {
@@ -99,7 +99,7 @@ func (p *Publisher) PrepareInputs() ([]byte, error) {
 
 func (p *Publisher) GenerateProof(ctx context.Context, inputs []byte) (*models.FullProof, error) {
 
-	wasm, err := p.loader.Wasm(ctx, "stateTransition")
+	wasm, err := utils.ReadFileByPath(p.circuitsPath, "/stateTransition/circuit.wasm")
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (p *Publisher) GenerateProof(ctx context.Context, inputs []byte) (*models.F
 		return nil, errors.New("can't generate witnesses")
 	}
 
-	provingKey, err := p.loader.ProofingKey(ctx, "stateTransition")
+	provingKey, err := utils.ReadFileByPath(p.circuitsPath, "/stateTransition/circuit_final.zkey")
 	if err != nil {
 		return nil, err
 	}
