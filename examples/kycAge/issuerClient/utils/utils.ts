@@ -9,6 +9,7 @@ export const makeAgeClaimRequest = (dob: number, userID:string, props: {issuerPu
       "birthday": dob, //19960424,
       "documentType": 1
     },
+    "version": Math.floor(Math.random() * 1000) + 1,
     "expiration": 12345678888
   });
   
