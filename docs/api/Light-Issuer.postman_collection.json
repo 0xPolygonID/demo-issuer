@@ -1,9 +1,8 @@
 {
 	"info": {
-		"_postman_id": "318436e1-30f7-48ec-88b1-003de1a743fe",
+		"_postman_id": "75562439-27fc-4d41-ab26-53213ca3a047",
 		"name": "Demo-Issuer",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "10787506"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
@@ -220,12 +219,31 @@
 						"api",
 						"v1",
 						"claims",
-						"revocation",
-						"status",
+						"revocations",
 						"{{claim_nonce}}"
 					]
 				},
 				"description": "It returns whether a claim has been revoked or not.\n\nThe response will be a JSON with a single field claiming the revocation status via a boolean value.\n\n``` json\n{\n    \"revoked\": \"true\"\n}\n\n```"
+			},
+			"response": []
+		},
+		{
+			"name": "Publish identity state",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/api/v1/identity/publish",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"identity",
+						"publish"
+					]
+				}
 			},
 			"response": []
 		}
