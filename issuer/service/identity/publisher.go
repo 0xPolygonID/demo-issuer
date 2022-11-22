@@ -3,27 +3,42 @@ package identity
 import (
 	"context"
 	"github.com/iden3/go-circuits"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/poseidon"
+	"github.com/iden3/go-merkletree-sql"
 	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/iden3/go-rapidsnark/witness"
 	"github.com/pkg/errors"
-	"issuer/service/blockchain"
+	logger "github.com/sirupsen/logrus"
+	"issuer/service/identity/state"
 	"issuer/service/loader"
 	"issuer/service/models"
-	"log"
 	"math/big"
 )
+
+type TransitionInfo struct {
+	IsOldStateGenesis bool
+	Identifier        *core.ID
+	LatestState       *merkletree.Hash
+	NewState          *merkletree.Hash
+	Proof             *models.ZKProof
+}
+
+type StateStore interface {
+	UpdateState(ctx context.Context, trInfo *TransitionInfo) (string, error)
+	WaitTransaction(ctx context.Context, txHex string) error
+}
 
 type Publisher struct {
 	i          *Identity
 	loader     *loader.Loader
-	stateStore *blockchain.Blockchain
+	stateStore StateStore
 }
 
 func (p *Publisher) PrepareInputs() ([]byte, error) {
 
 	// oldState
-	oldState, err := circuitsState(p.i.latestRootsState)
+	oldState, err := circuitsState(p.i.state.CommittedState)
 	if err != nil {
 		return nil, err
 	}
@@ -33,12 +48,12 @@ func (p *Publisher) PrepareInputs() ([]byte, error) {
 		return nil, err
 	}
 
-	authInclusionProof, _, err := p.i.GetInclusionProof(p.i.authClaim)
+	authInclusionProof, _, err := p.i.state.GetInclusionProof(p.i.authClaim)
 	if err != nil {
 		return nil, err
 	}
 
-	authNonRevocationProof, _, err := p.i.GetRevocationProof(p.i.authClaim)
+	authNonRevocationProof, _, err := p.i.state.GetRevocationProof(p.i.authClaim)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +80,7 @@ func (p *Publisher) PrepareInputs() ([]byte, error) {
 		ID:                p.i.Identifier,
 		NewState:          newState,
 		OldTreeState:      oldState,
-		IsOldStateGenesis: p.i.latestRootsState.IsLatestStateGenesis,
+		IsOldStateGenesis: p.i.state.CommittedState.IsLatestStateGenesis,
 
 		AuthClaim: authClaim,
 
@@ -119,7 +134,7 @@ func (p *Publisher) GenerateProof(ctx context.Context, inputs []byte) (*models.F
 	}, nil
 }
 
-func (p *Publisher) SendTx(ctx context.Context, info *blockchain.TransitionInfo) (string, error) {
+func (p *Publisher) UpdateState(ctx context.Context, info *TransitionInfo) (string, error) {
 	txHex, err := p.stateStore.UpdateState(ctx, info)
 	if err != nil {
 		return "", err
@@ -127,10 +142,10 @@ func (p *Publisher) SendTx(ctx context.Context, info *blockchain.TransitionInfo)
 	go func() {
 		err = p.stateStore.WaitTransaction(context.Background(), txHex)
 		if err != nil {
-			log.Printf("failed update state from '%s' to '%s'", info.LatestState, info.NewState)
+			logger.Printf("failed update state from '%s' to '%s'", info.LatestState, info.NewState)
 			return
 		}
-		p.i.latestRootsState = RootsState{
+		p.i.state.CommittedState = state.CommittedState{
 			IsLatestStateGenesis: false,
 			RootsTreeRoot:        p.i.state.Roots.Tree.Root(),
 			ClaimsTreeRoot:       p.i.state.Claims.Tree.Root(),
@@ -140,7 +155,7 @@ func (p *Publisher) SendTx(ctx context.Context, info *blockchain.TransitionInfo)
 	return txHex, err
 }
 
-func circuitsState(s RootsState) (circuits.TreeState, error) {
+func circuitsState(s state.CommittedState) (circuits.TreeState, error) {
 
 	state, err := s.State()
 	if err != nil {

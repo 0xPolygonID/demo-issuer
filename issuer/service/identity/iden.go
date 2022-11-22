@@ -4,16 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/utils"
-	"github.com/iden3/go-merkletree-sql"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"issuer/service/blockchain"
 	"issuer/service/cfgs"
 	"issuer/service/claim"
 	"issuer/service/command"
@@ -32,25 +29,13 @@ type Identity struct {
 	authClaim   *core.Claim
 	publicUrl   string
 
-	state            *state.IdentityState
-	CmdHandler       *command.Handler
-	CommHandler      *communication.Handler
-	schemaBuilder    *schema.Builder
-	latestRootsState RootsState
+	state         *state.IdentityState
+	CmdHandler    *command.Handler
+	CommHandler   *communication.Handler
+	schemaBuilder *schema.Builder
 
 	loaderService *loader.Loader
-	stateStore    *blockchain.Blockchain
-}
-
-type RootsState struct {
-	IsLatestStateGenesis bool
-	RootsTreeRoot        *merkletree.Hash
-	ClaimsTreeRoot       *merkletree.Hash
-	RevocationTreeRoot   *merkletree.Hash
-}
-
-func (t *RootsState) State() (*merkletree.Hash, error) {
-	return merkletree.HashElems(t.ClaimsTreeRoot.BigInt(), t.RevocationTreeRoot.BigInt(), t.RootsTreeRoot.BigInt())
+	stateStore    StateStore
 }
 
 func New(
@@ -58,7 +43,7 @@ func New(
 	schemaBuilder *schema.Builder,
 	sk babyjub.PrivateKey,
 	cfg *cfgs.IssuerConfig,
-	stateStore *blockchain.Blockchain,
+	stateStore StateStore,
 ) (*Identity, error) {
 	iden := &Identity{
 		state:         s,
@@ -77,8 +62,8 @@ func New(
 	if id != nil && len(id) > 0 { // case: identity found -> load identity
 		iden.Identifier = id
 		iden.authClaimId = authClaimId
-		iden.latestRootsState = RootsState{
-			IsLatestStateGenesis: iden.isGenesis(),
+		iden.state.CommittedState = state.CommittedState{
+			IsLatestStateGenesis: iden.state.IsGenesis(),
 			RootsTreeRoot:        iden.state.Roots.Tree.Root(),
 			ClaimsTreeRoot:       iden.state.Claims.Tree.Root(),
 			RevocationTreeRoot:   iden.state.Revocations.Tree.Root(),
@@ -103,12 +88,6 @@ func New(
 	return iden, nil
 }
 
-func (i *Identity) isGenesis() bool {
-	return i.state.Claims.Tree.Root().Equals(&merkletree.HashZero) &&
-		i.state.Roots.Tree.Root().Equals(&merkletree.HashZero) &&
-		i.state.Revocations.Tree.Root().Equals(&merkletree.HashZero)
-}
-
 func (i *Identity) init() error {
 	logger.Debug("Identity.init() invoked")
 
@@ -119,7 +98,7 @@ func (i *Identity) init() error {
 	}
 
 	i.authClaim = authClaim
-	i.latestRootsState = RootsState{
+	i.state.CommittedState = state.CommittedState{
 		IsLatestStateGenesis: true,
 		ClaimsTreeRoot:       i.state.Claims.Tree.Root(),
 		RevocationTreeRoot:   i.state.Revocations.Tree.Root(),
@@ -301,13 +280,13 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 		return nil, err
 	}
 
-	if !i.latestRootsState.IsLatestStateGenesis {
+	if !i.state.CommittedState.IsLatestStateGenesis {
 		claimIdx, err := claimModel.CoreClaim.HIndex()
 		if err != nil {
 			return nil, err
 		}
 		mtpProof, _, err := i.state.Claims.Tree.GenerateProof(
-			context.Background(), claimIdx, i.latestRootsState.ClaimsTreeRoot)
+			context.Background(), claimIdx, i.state.CommittedState.ClaimsTreeRoot)
 		if err != nil {
 			return nil, err
 		}
@@ -362,16 +341,16 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 	rID := new(big.Int).SetUint64(nonce)
 
 	res := &issuer_contract.GetRevocationStatusResponse{}
-	mtp, err := i.state.Revocations.GenerateRevocationProof(rID, i.latestRootsState.RevocationTreeRoot)
+	mtp, err := i.state.Revocations.GenerateRevocationProof(rID, i.state.CommittedState.RevocationTreeRoot)
 	if err != nil {
 		return nil, err
 	}
 	res.MTP = mtp
-	res.Issuer.RevocationTreeRoot = i.latestRootsState.RevocationTreeRoot.Hex()
-	res.Issuer.RootOfRoots = i.latestRootsState.RootsTreeRoot.Hex()
-	res.Issuer.ClaimsTreeRoot = i.latestRootsState.RootsTreeRoot.Hex()
+	res.Issuer.RevocationTreeRoot = i.state.CommittedState.RevocationTreeRoot.Hex()
+	res.Issuer.RootOfRoots = i.state.CommittedState.RootsTreeRoot.Hex()
+	res.Issuer.ClaimsTreeRoot = i.state.CommittedState.RootsTreeRoot.Hex()
 
-	stateHash, err := i.latestRootsState.State()
+	stateHash, err := i.state.CommittedState.State()
 	if err != nil {
 		return nil, err
 	}
@@ -379,22 +358,6 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 
 	return res, nil
 
-}
-
-func (i *Identity) GetInclusionProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
-	hi, _, err := claim.HiHv()
-	if err != nil {
-		return nil, nil, err
-	}
-	return i.state.Claims.Tree.GenerateProof(context.Background(), hi, i.latestRootsState.ClaimsTreeRoot)
-}
-
-func (i *Identity) GetRevocationProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
-	hi, _, err := claim.HiHv()
-	if err != nil {
-		return nil, nil, err
-	}
-	return i.state.Revocations.Tree.GenerateProof(context.Background(), hi, i.latestRootsState.RevocationTreeRoot)
 }
 
 func (i *Identity) PublishLatestState(ctx context.Context) (string, error) {
@@ -414,7 +377,7 @@ func (i *Identity) PublishLatestState(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	latestState, err := i.latestRootsState.State()
+	latestState, err := i.state.CommittedState.State()
 	if err != nil {
 		return "", err
 	}
@@ -427,18 +390,18 @@ func (i *Identity) PublishLatestState(ctx context.Context) (string, error) {
 		return "", errors.New("nothing to update")
 	}
 
-	ti := &blockchain.TransitionInfo{
+	ti := &TransitionInfo{
 		Identifier:        i.Identifier,
 		LatestState:       latestState,
 		NewState:          newState,
-		IsOldStateGenesis: i.latestRootsState.IsLatestStateGenesis,
+		IsOldStateGenesis: i.state.CommittedState.IsLatestStateGenesis,
 		Proof:             proof.Proof,
 	}
-	txHex, err := publisher.SendTx(ctx, ti)
+	txHex, err := publisher.UpdateState(ctx, ti)
 	if err != nil {
 		return "", err
 	}
-	log.Info("transaction for change state:", txHex)
+	logger.Info("transaction for change state:", txHex)
 
 	return txHex, nil
 }

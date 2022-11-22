@@ -11,7 +11,6 @@ import (
 	"issuer/service/identity"
 	"issuer/service/identity/state"
 	"issuer/service/schema"
-	"log"
 	"os"
 )
 
@@ -52,7 +51,7 @@ func CreateApp(altCfgPath string) error {
 
 	chstore, err := blockchain.NewBlockchainConnect(cfg.NodeURL, cfg.ContractAddress, cfg.Identity.PublishingKey)
 	if err != nil {
-		log.Fatal("failed connect to chain", err)
+		return err
 	}
 
 	logger.Info("creating Identity")

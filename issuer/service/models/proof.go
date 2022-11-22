@@ -19,18 +19,18 @@ type ZKProof struct {
 // `*big.Int` format, to be used for example in snarkjs solidity verifiers.
 func (p *ZKProof) ProofToBigInts() (a []*big.Int, b [][]*big.Int, c []*big.Int, err error) {
 
-	a, err = ArrayStringToBigInt(p.A)
+	a, err = arrayStringToBigInt(p.A)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	b = make([][]*big.Int, len(p.B))
 	for i, v := range p.B {
-		b[i], err = ArrayStringToBigInt(v)
+		b[i], err = arrayStringToBigInt(v)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 	}
-	c, err = ArrayStringToBigInt(p.C)
+	c, err = arrayStringToBigInt(p.C)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -44,8 +44,8 @@ type FullProof struct {
 	PubSignals []string `json:"pub_signals"`
 }
 
-// ArrayStringToBigInt converts array of string to big int
-func ArrayStringToBigInt(s []string) ([]*big.Int, error) {
+// arrayStringToBigInt converts array of string to big int
+func arrayStringToBigInt(s []string) ([]*big.Int, error) {
 	var o []*big.Int
 	for i := 0; i < len(s); i++ {
 		si, err := stringToBigInt(s[i])

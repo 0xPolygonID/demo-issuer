@@ -11,24 +11,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-merkletree-sql"
 	"github.com/pkg/errors"
+	logger "github.com/sirupsen/logrus"
 	eth "issuer/service/blockchain/contracts"
-	"issuer/service/models"
-	"log"
+	"issuer/service/identity"
 	"math"
 	"math/big"
 	"time"
 )
-
-type TransitionInfo struct {
-	Identifier        *core.ID
-	LatestState       *merkletree.Hash
-	NewState          *merkletree.Hash
-	IsOldStateGenesis bool
-	Proof             *models.ZKProof
-}
 
 type Blockchain struct {
 	client          *ethclient.Client
@@ -39,7 +29,7 @@ type Blockchain struct {
 func NewBlockchainConnect(nodeAddress, contractAddress, pk string) (*Blockchain, error) {
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	ethClient, err := ethclient.Dial(nodeAddress)
@@ -53,7 +43,7 @@ func NewBlockchainConnect(nodeAddress, contractAddress, pk string) (*Blockchain,
 	}, nil
 }
 
-func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *TransitionInfo) (string, error) {
+func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *identity.TransitionInfo) (string, error) {
 	if trInfo.NewState.Equals(trInfo.LatestState) {
 		return "", errors.New("state hasn't been changed")
 	}
@@ -64,13 +54,12 @@ func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *TransitionInfo) (
 		return "", errors.New("error casting public key to ECDSA")
 	}
 
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-
 	payload, err := ps.getStatePayload(trInfo)
 	if err != nil {
 		return "", err
 	}
 
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	tx, err := ps.sendTransaction(ctx, fromAddress, ps.contractAddress, payload)
 	if err != nil {
 		return "", err
@@ -110,7 +99,7 @@ func (ps *Blockchain) waitingReceipt(ctx context.Context, hash common.Hash) (*ty
 	for tryCount > 0 {
 		receipt, err := ps.client.TransactionReceipt(ctx, hash)
 		if err != nil && errors.Is(err, ethereum.NotFound) {
-			log.Printf("transaction '%s' not found\n", hash)
+			logger.Printf("transaction '%s' not found", hash)
 			tryCount--
 			time.Sleep(time.Second * 5)
 			continue
@@ -118,10 +107,10 @@ func (ps *Blockchain) waitingReceipt(ctx context.Context, hash common.Hash) (*ty
 			return nil, err
 		}
 
-		if receipt.Status == types.ReceiptStatusFailed {
+		switch receipt.Status {
+		case types.ReceiptStatusFailed:
 			return nil, fmt.Errorf("transaciton '%s' failed", hash)
-		}
-		if receipt.Status == types.ReceiptStatusSuccessful {
+		case types.ReceiptStatusSuccessful:
 			return receipt, nil
 		}
 		return nil, fmt.Errorf("unknown tx type '%d'", receipt.Status)
@@ -193,7 +182,7 @@ func (ps *Blockchain) sendTransaction(ctx context.Context, from, to common.Addre
 	return signedTx, nil
 }
 
-func (ps *Blockchain) getStatePayload(ti *TransitionInfo) ([]byte, error) {
+func (ps *Blockchain) getStatePayload(ti *identity.TransitionInfo) ([]byte, error) {
 	a, b, c, err := ti.Proof.ProofToBigInts()
 	if err != nil {
 		return nil, err

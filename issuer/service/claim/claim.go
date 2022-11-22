@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
@@ -27,8 +26,7 @@ const (
 )
 
 var (
-	BabyJubSignatureType       = "BJJSignature2021"
-	Iden3SparseMerkleProofType = "Iden3SparseMerkleProof"
+	BabyJubSignatureType = "BJJSignature2021"
 )
 
 type Claim struct {
@@ -54,64 +52,6 @@ type Claim struct {
 	HIndex           string
 }
 
-func (c *Claim) NewCircuitClaimData() (circuits.Claim, error) {
-	var circuitClaim circuits.Claim
-	if c == nil {
-		return circuitClaim, errors.New("claim is nil")
-	}
-
-	var err error
-
-	circuitClaim.Claim = c.CoreClaim
-
-	var proof verifiable.Iden3SparseMerkleProof
-	err = json.Unmarshal(c.MTPProof, proof)
-	if err != nil {
-		return circuitClaim, errors.WithStack(err)
-	}
-	circuitClaim.Proof = proof.MTP
-
-	issuerID, err := core.IDFromString(c.Issuer)
-	if err != nil {
-		return circuitClaim, errors.WithStack(err)
-	}
-
-	circuitClaim.IssuerID = &issuerID
-
-	circuitClaim.TreeState = circuits.TreeState{
-		State:          strMTHex(proof.IssuerData.State.Value),
-		ClaimsRoot:     strMTHex(proof.IssuerData.State.ClaimsTreeRoot),
-		RevocationRoot: strMTHex(proof.IssuerData.State.RevocationTreeRoot),
-		RootOfRoots:    strMTHex(proof.IssuerData.State.RootOfRoots),
-	}
-
-	var sigProof verifiable.BJJSignatureProof2021
-	err = json.Unmarshal(c.SignatureProof, &sigProof)
-	if err != nil {
-		return circuitClaim, errors.WithStack(err)
-	}
-
-	signature, err := BJJSignatureFromHexString(sigProof.Signature)
-	if err != nil {
-		return circuitClaim, errors.WithStack(err)
-	}
-
-	circuitClaim.SignatureProof = circuits.BJJSignatureProof{
-		IssuerID: sigProof.IssuerData.ID,
-		IssuerTreeState: circuits.TreeState{
-			State:          strMTHex(sigProof.IssuerData.State.Value),
-			ClaimsRoot:     strMTHex(sigProof.IssuerData.State.ClaimsTreeRoot),
-			RevocationRoot: strMTHex(sigProof.IssuerData.State.RevocationTreeRoot),
-			RootOfRoots:    strMTHex(sigProof.IssuerData.State.RootOfRoots),
-		},
-		IssuerAuthClaimMTP: sigProof.IssuerData.MTP,
-		Signature:          signature,
-		IssuerAuthClaim:    sigProof.IssuerData.AuthClaim,
-	}
-
-	return circuitClaim, err
-}
-
 type CoreClaimData struct {
 	EncodedSchema   string
 	Slots           processor.ParsedSlots
@@ -120,7 +60,6 @@ type CoreClaimData struct {
 	Version         uint32
 	Nonce           *uint64
 	SubjectPosition string
-	State           string
 }
 
 // GenerateCoreClaim generate core claim via settings from CoreClaimData.

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	store "github.com/demonsh/smt-bolt"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -10,9 +11,23 @@ import (
 	"issuer/db"
 	"issuer/service/claim"
 	"issuer/service/schema"
+	"math/big"
 )
 
+type CommittedState struct {
+	IsLatestStateGenesis bool
+	RootsTreeRoot        *merkletree.Hash
+	ClaimsTreeRoot       *merkletree.Hash
+	RevocationTreeRoot   *merkletree.Hash
+}
+
+func (cs *CommittedState) State() (*merkletree.Hash, error) {
+	return merkletree.HashElems(cs.ClaimsTreeRoot.BigInt(), cs.RevocationTreeRoot.BigInt(), cs.RootsTreeRoot.BigInt())
+}
+
 type IdentityState struct {
+	CommittedState CommittedState
+
 	Claims      *Claims
 	Revocations *Revocations
 	Roots       *Roots
@@ -136,4 +151,26 @@ func (is *IdentityState) GetStateHash() (*merkletree.Hash, error) {
 		is.Revocations.Tree.Root().BigInt(),
 		is.Roots.Tree.Root().BigInt(),
 	)
+}
+
+func (is *IdentityState) IsGenesis() bool {
+	return is.Claims.Tree.Root().Equals(&merkletree.HashZero) &&
+		is.Roots.Tree.Root().Equals(&merkletree.HashZero) &&
+		is.Revocations.Tree.Root().Equals(&merkletree.HashZero)
+}
+
+func (is *IdentityState) GetInclusionProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
+	hi, _, err := claim.HiHv()
+	if err != nil {
+		return nil, nil, err
+	}
+	return is.Claims.Tree.GenerateProof(context.Background(), hi, is.CommittedState.ClaimsTreeRoot)
+}
+
+func (is *IdentityState) GetRevocationProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
+	hi, _, err := claim.HiHv()
+	if err != nil {
+		return nil, nil, err
+	}
+	return is.Revocations.Tree.GenerateProof(context.Background(), hi, is.CommittedState.RevocationTreeRoot)
 }

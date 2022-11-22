@@ -2,8 +2,8 @@ package loader
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/pkg/errors"
+	logger "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,26 +24,27 @@ func NewLoader(basePath string) *Loader {
 }
 
 func (l *Loader) Wasm(ctx context.Context, circuitName string) ([]byte, error) {
-	return uploadFile(l.basePath, circuitName, wasmFile)
+	return readFile(l.basePath, circuitName, wasmFile)
 }
 
 func (l *Loader) VerificationKey(ctx context.Context, circuitName string) ([]byte, error) {
-	return uploadFile(l.basePath, circuitName, verificationFile)
+	return readFile(l.basePath, circuitName, verificationFile)
 }
 
 func (l *Loader) ProofingKey(ctx context.Context, circuitName string) ([]byte, error) {
-	return uploadFile(l.basePath, circuitName, proofingKeyFile)
+	return readFile(l.basePath, circuitName, proofingKeyFile)
 }
 
-func uploadFile(path, circuitName, fileType string) ([]byte, error) {
+func readFile(path, circuitName, fileType string) ([]byte, error) {
 	fullPath := filepath.Clean(filepath.Join(path, circuitName, fileType))
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed open file '%s'", fullPath)
 	}
 	defer func() {
-		err := f.Close()
-		log.Info("failed close file ", fullPath, err)
+		if err := f.Close(); err != nil {
+			logger.Error("failed close file ", fullPath, err)
+		}
 	}()
 
 	data, err := io.ReadAll(f)
