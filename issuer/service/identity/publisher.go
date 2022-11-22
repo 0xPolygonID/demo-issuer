@@ -16,7 +16,13 @@ import (
 	"math/big"
 )
 
-type TransitionInfo struct {
+type TransitionInfoResponse struct {
+	TxID           string
+	BlockTimestamp uint64
+	BlockNumber    uint64
+}
+
+type TransitionInfoRequest struct {
 	IsOldStateGenesis bool
 	Identifier        *core.ID
 	LatestState       *merkletree.Hash
@@ -25,8 +31,8 @@ type TransitionInfo struct {
 }
 
 type StateStore interface {
-	UpdateState(ctx context.Context, trInfo *TransitionInfo) (string, error)
-	WaitTransaction(ctx context.Context, txHex string) error
+	UpdateState(ctx context.Context, trInfo *TransitionInfoRequest) (string, error)
+	WaitTransaction(ctx context.Context, txHex string) (*TransitionInfoResponse, error)
 }
 
 type Publisher struct {
@@ -134,18 +140,24 @@ func (p *Publisher) GenerateProof(ctx context.Context, inputs []byte) (*models.F
 	}, nil
 }
 
-func (p *Publisher) UpdateState(ctx context.Context, info *TransitionInfo) (string, error) {
+func (p *Publisher) UpdateState(ctx context.Context, info *TransitionInfoRequest) (string, error) {
 	txHex, err := p.stateStore.UpdateState(ctx, info)
 	if err != nil {
 		return "", err
 	}
 	go func() {
-		err = p.stateStore.WaitTransaction(context.Background(), txHex)
+		tir, err := p.stateStore.WaitTransaction(context.Background(), txHex)
 		if err != nil {
 			logger.Printf("failed update state from '%s' to '%s'", info.LatestState, info.NewState)
 			return
 		}
 		p.i.state.CommittedState = state.CommittedState{
+			Info: &state.Info{
+				TxId:           txHex,
+				BlockTimestamp: tir.BlockTimestamp,
+				BlockNumber:    tir.BlockNumber,
+			},
+
 			IsLatestStateGenesis: false,
 			RootsTreeRoot:        p.i.state.Roots.Tree.Root(),
 			ClaimsTreeRoot:       p.i.state.Claims.Tree.Root(),

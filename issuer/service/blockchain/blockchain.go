@@ -43,7 +43,7 @@ func NewBlockchainConnect(nodeAddress, contractAddress, pk string) (*Blockchain,
 	}, nil
 }
 
-func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *identity.TransitionInfo) (string, error) {
+func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *identity.TransitionInfoRequest) (string, error) {
 	if trInfo.NewState.Equals(trInfo.LatestState) {
 		return "", errors.New("state hasn't been changed")
 	}
@@ -68,23 +68,35 @@ func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *identity.Transiti
 	return tx.Hash().Hex(), nil
 }
 
-func (ps *Blockchain) WaitTransaction(ctx context.Context, txHex string) error {
+func (ps *Blockchain) WaitTransaction(ctx context.Context, txHex string) (*identity.TransitionInfoResponse, error) {
 	txID := common.HexToHash(txHex)
 	receipt, err := ps.waitingReceipt(ctx, txID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return ps.waitConfirmation(ctx, txID, receipt.BlockNumber.Uint64())
+	err = ps.waitConfirmation(ctx, txID, receipt.BlockNumber)
+	if err != nil {
+		return nil, err
+	}
+	block, err := ps.getBlockByNumber(ctx, receipt.BlockNumber)
+	if err != nil {
+		return nil, err
+	}
+	return &identity.TransitionInfoResponse{
+		TxID:           txHex,
+		BlockTimestamp: block.Time(),
+		BlockNumber:    block.NumberU64(),
+	}, nil
 }
 
-func (ps *Blockchain) waitConfirmation(ctx context.Context, hash common.Hash, formBlock uint64) error {
+func (ps *Blockchain) waitConfirmation(ctx context.Context, hash common.Hash, formBlock *big.Int) error {
 	tryCount := 100
 	for tryCount > 0 {
 		latestBlock, err := ps.client.BlockNumber(ctx)
 		if err != nil {
 			return err
 		}
-		diff := latestBlock - formBlock
+		diff := latestBlock - formBlock.Uint64()
 		if diff > 10 {
 			return nil
 		}
@@ -116,6 +128,10 @@ func (ps *Blockchain) waitingReceipt(ctx context.Context, hash common.Hash) (*ty
 		return nil, fmt.Errorf("unknown tx type '%d'", receipt.Status)
 	}
 	return nil, fmt.Errorf("all attempts are used")
+}
+
+func (ps *Blockchain) getBlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+	return ps.client.BlockByNumber(ctx, number)
 }
 
 func (ps *Blockchain) sendTransaction(ctx context.Context, from, to common.Address, payload []byte) (*types.Transaction, error) {
@@ -182,7 +198,7 @@ func (ps *Blockchain) sendTransaction(ctx context.Context, from, to common.Addre
 	return signedTx, nil
 }
 
-func (ps *Blockchain) getStatePayload(ti *identity.TransitionInfo) ([]byte, error) {
+func (ps *Blockchain) getStatePayload(ti *identity.TransitionInfoRequest) ([]byte, error) {
 	a, b, c, err := ti.Proof.ProofToBigInts()
 	if err != nil {
 		return nil, err

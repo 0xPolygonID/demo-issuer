@@ -14,7 +14,16 @@ import (
 	"math/big"
 )
 
+// Info contains information about when the state was committed.
+type Info struct {
+	TxId           string
+	BlockTimestamp uint64
+	BlockNumber    uint64
+}
+
 type CommittedState struct {
+	Info *Info
+
 	IsLatestStateGenesis bool
 	RootsTreeRoot        *merkletree.Hash
 	ClaimsTreeRoot       *merkletree.Hash
