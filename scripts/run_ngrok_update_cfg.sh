@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env
 
 ngrok http 8001 > /dev/null &
 sleep 1
