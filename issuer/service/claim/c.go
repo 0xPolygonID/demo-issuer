@@ -22,9 +22,7 @@ const (
 	SubjectPositionIndex = "index"
 	// SubjectPositionValue save subject in value part of claim.
 	SubjectPositionValue = "value"
-)
 
-var (
 	BabyJubSignatureType = "BJJSignature2021"
 )
 
@@ -63,6 +61,7 @@ type CoreClaimData struct {
 
 // GenerateCoreClaim generate core claim via settings from CoreClaimData.
 func GenerateCoreClaim(req *CoreClaimData) (*core.Claim, error) {
+
 	var revNonce *uint64
 	r, err := Rand()
 	if err != nil {

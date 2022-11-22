@@ -46,6 +46,8 @@ type Handler struct {
 
 // sending sign in request to the client (move it to the issuer communication (identity))
 func (h *Handler) GetAuthVerificationRequest() ([]byte, string, error) {
+	logger.Debug("Communication.GetAuthVerificationRequest() invoked")
+
 	sId := strconv.Itoa(rand.Intn(1000000))
 
 	hostUrl := h.publicUrl
@@ -71,6 +73,8 @@ func (h *Handler) GetAuthVerificationRequest() ([]byte, string, error) {
 }
 
 func (h *Handler) GetAgeVerificationRequest() ([]byte, string, error) {
+	logger.Debug("Communication.GetAgeVerificationRequest() invoked")
+
 	sId := strconv.Itoa(rand.Intn(1000000))
 
 	hostUrl := h.publicUrl
@@ -115,6 +119,7 @@ func (h *Handler) GetAgeVerificationRequest() ([]byte, string, error) {
 }
 
 func (h *Handler) GetAgeClaimOffer(userId, claimId string) ([]byte, error) {
+	logger.Debug("Communication.GetAgeClaimOffer() invoked")
 
 	res := &protocol.CredentialsOfferMessage{
 		ID:       uuid.New().String(),
@@ -144,6 +149,7 @@ func (h *Handler) GetAgeClaimOffer(userId, claimId string) ([]byte, error) {
 // Handle the sign in response from the user
 // Callback works with sign-in callbacks
 func (h *Handler) Callback(sId string, tokenBytes []byte) ([]byte, error) {
+	logger.Debug("Communication.Callback() invoked")
 
 	authRequest, wasFound := userSessionTracker.Get(sId)
 	if wasFound == false {
@@ -185,7 +191,9 @@ func (h *Handler) Callback(sId string, tokenBytes []byte) ([]byte, error) {
 
 // GetRequestStatus checks response status
 func (h *Handler) GetRequestStatus(id string) ([]byte, error) {
-	//logger.Tracef("cache - getting id %s from cahce\n", id)
+	logger.Debug("Communication.Callback() invoked")
+
+	logger.Tracef("cache - getting id %s from cahce\n", id)
 	item, ok := userSessionTracker.Get(id)
 	if !ok {
 		logger.Tracef("item not found %v", id)

@@ -20,7 +20,7 @@ type DB struct {
 }
 
 func New(dbFilePath string) (*DB, error) {
-	logger.Debugf("opening new DB connection (file-path: %s)", dbFilePath)
+	logger.Debugf("DB: opening new DB connection (file-path: %s)", dbFilePath)
 	conn, err := bbolt.Open(dbFilePath, 0600, nil)
 	if err != nil {
 		return nil, err
@@ -35,6 +35,8 @@ func New(dbFilePath string) (*DB, error) {
 }
 
 func initDB(conn *bbolt.DB) error {
+	logger.Trace("DB: init DB")
+
 	return conn.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(ClaimsBucketName)
 		if err != nil {
@@ -55,12 +57,16 @@ func (db *DB) GetConnection() *bbolt.DB {
 }
 
 func (db *DB) SaveIdentity(id, authClaimId []byte) error {
+	logger.Tracef("DB: saving identity with id: %x", id)
+
 	return db.conn.Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket(IdentityBucketName).Put(id, authClaimId)
 	})
 }
 
 func (db *DB) GetClaim(key []byte) (*claim.Claim, error) {
+	logger.Tracef("DB: getting claim with the key: %x", key)
+
 	claimB := make([]byte, 0)
 
 	err := db.conn.View(func(tx *bbolt.Tx) error {
@@ -86,6 +92,8 @@ func (db *DB) GetClaim(key []byte) (*claim.Claim, error) {
 }
 
 func (db *DB) SaveClaim(c *claim.Claim) error {
+	logger.Tracef("DB: saving claim with the id: %s", c.ID.String())
+
 	claimB := make([]byte, 0)
 	err := codec.NewEncoderBytes(&claimB, &jsonHandle).Encode(c)
 	if err != nil {
@@ -100,6 +108,8 @@ func (db *DB) SaveClaim(c *claim.Claim) error {
 }
 
 func (db *DB) GetAllClaims() ([]claim.Claim, error) {
+	logger.Trace("DB: getting all claims")
+
 	res := []claim.Claim{}
 
 	return res, db.conn.View(func(tx *bbolt.Tx) error {
@@ -119,6 +129,8 @@ func (db *DB) GetAllClaims() ([]claim.Claim, error) {
 }
 
 func (db *DB) GetSavedIdentity() ([]byte, []byte, error) {
+	logger.Trace("DB: getting the saved identity")
+
 	var id []byte
 	var authClaimId []byte
 
