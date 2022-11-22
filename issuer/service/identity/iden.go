@@ -337,7 +337,7 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 	res.MTP = mtp
 	res.Issuer.RevocationTreeRoot = i.state.CommittedState.RevocationTreeRoot.Hex()
 	res.Issuer.RootOfRoots = i.state.CommittedState.RootsTreeRoot.Hex()
-	res.Issuer.ClaimsTreeRoot = i.state.CommittedState.RootsTreeRoot.Hex()
+	res.Issuer.ClaimsTreeRoot = i.state.CommittedState.ClaimsTreeRoot.Hex()
 
 	stateHash, err := i.state.CommittedState.State()
 	if err != nil {
