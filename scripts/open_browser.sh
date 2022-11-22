@@ -1,4 +1,4 @@
-#!/usr/bin/env
+#!/bin/sh
 
 #if [ -z "$1" ];
 #then

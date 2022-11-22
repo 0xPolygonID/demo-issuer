@@ -1,4 +1,4 @@
-#!/usr/bin/env
+#!/bin/sh
 
 ngrok http 8001 > /dev/null &
 sleep 1
@@ -28,4 +28,4 @@ grep -v '^public' issuer/issuer_config.default.yaml > temp && mv temp issuer/iss
 
 # add new public url to config
 to_add="public_url: ${NGROK_REMOTE_URL}"
-echo -e "$to_add" >> issuer/issuer_config.default.yaml
+echo "$to_add" >> issuer/issuer_config.default.yaml

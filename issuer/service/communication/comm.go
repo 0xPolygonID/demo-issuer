@@ -202,7 +202,8 @@ func (h *Handler) GetRequestStatus(id string) ([]byte, error) {
 
 	switch item.(type) {
 	case protocol.AuthorizationRequestMessage:
-		return nil, fmt.Errorf("no authorization response yet")
+		logger.Warn("no authorization response yet - no data available for this request")
+		return nil, nil
 	case map[string]interface{}:
 		b, err := json.Marshal(item)
 		if err != nil {
