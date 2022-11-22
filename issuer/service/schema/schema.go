@@ -27,15 +27,7 @@ const (
 
 	//// JSON JSON schema format
 	//JSON SchemaFormat = "json"
-
-	//IpfsUrl = "ipfs.io"
 )
-
-//const (
-//	AuthBJJCredentialHash = "ca938857241db9451ea329256b9c06e5"
-//	AuthBJJCredential     = "AuthBJJCredential"
-//	AuthBJJCredentialURL  = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld"
-//)
 
 type SchemaFormat string
 

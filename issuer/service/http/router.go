@@ -33,12 +33,17 @@ func newRouter(s *Server) chi.Router {
 			r.Post("/publish", s.publish)
 		})
 
+		root.Route("/requests", func(reqs chi.Router) {
+			reqs.Get("/auth", s.getAuthVerificationRequest)
+			reqs.Get("/age-kyc", s.getAgeVerificationRequest)
+		})
+
 		root.Route("/claims", func(claims chi.Router) {
 			claims.Get("/{id}", s.getClaim)
 			claims.Post("/", s.createClaim)
 
 			claims.Route("/offers", func(claimRequests chi.Router) {
-				claimRequests.Get("/{user-id}/{claim-id}", s.issuer.CommHandler.GetAgeClaimOffer)
+				claimRequests.Get("/{user-id}/{claim-id}", s.getAgeClaimOffer)
 			})
 
 			claims.Route("/revocations", func(revs chi.Router) {
@@ -48,22 +53,14 @@ func newRouter(s *Server) chi.Router {
 		})
 
 		root.Route("/agent", func(agent chi.Router) {
-			agent.Post("/", s.getAgent)
-		})
-
-		root.Route("/sign-in", func(agent chi.Router) {
-			agent.Get("/", s.issuer.CommHandler.GetAuthVerificationRequest)
-		})
-
-		root.Route("/age-verification-request", func(agent chi.Router) {
-			agent.Get("/", s.issuer.CommHandler.GetAgeVerificationRequest)
+			agent.Post("/", s.agent)
 		})
 
 		root.Route("/callback", func(agent chi.Router) {
-			agent.Post("/", s.issuer.CommHandler.Callback)
+			agent.Post("/", s.callback)
 		})
 		root.Route("/status", func(agent chi.Router) {
-			agent.Get("/", s.issuer.CommHandler.GetRequestStatus)
+			agent.Get("/", s.getRequestStatus)
 		})
 
 	})

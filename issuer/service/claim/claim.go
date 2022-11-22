@@ -1,6 +1,8 @@
 package claim
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,7 +15,6 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/pkg/errors"
 	"issuer/service/schema"
-	"issuer/service/utils"
 	"math/big"
 	"time"
 )
@@ -65,7 +66,7 @@ type CoreClaimData struct {
 // GenerateCoreClaim generate core claim via settings from CoreClaimData.
 func GenerateCoreClaim(req *CoreClaimData) (*core.Claim, error) {
 	var revNonce *uint64
-	r, err := utils.Rand()
+	r, err := Rand()
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +153,7 @@ func CoreClaimToClaimModel(claim *core.Claim, schemaURL, schemaType string) (*Cl
 }
 
 func NewAuthClaim(key *babyjub.PublicKey, schemaHash core.SchemaHash) (*core.Claim, error) {
-	revNonce, err := utils.Rand()
+	revNonce, err := Rand()
 	if err != nil {
 		return nil, err
 	}
@@ -358,4 +359,13 @@ func strMTHex(s *string) *merkletree.Hash {
 		return &merkletree.HashZero
 	}
 	return h
+}
+
+// Rand generate random uint64
+func Rand() (uint64, error) {
+	var buf [8]byte
+	// TODO: this was changed because revocation nonce is cut in dart / js if number is too big
+	_, err := rand.Read(buf[:4])
+
+	return binary.LittleEndian.Uint64(buf[:]), err
 }

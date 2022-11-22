@@ -36,7 +36,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating identity state")
-	idenState, err := state.NewIdentityState(db, cfg.Identity.MerkleTreeDepth)
+	idenState, err := state.NewIdentityState(db)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func CreateApp(altCfgPath string) error {
 
 	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
 
-	chstore, err := blockchain.NewBlockchainConnect(cfg.NodeURL, cfg.ContractAddress, cfg.Identity.PublishingKey)
+	chstore, err := blockchain.NewBlockchainConnect(cfg.NodeRpcUrl, cfg.ContractAddress, cfg.Identity.PublishingKey)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,6 @@ func CreateApp(altCfgPath string) error {
 		return err
 	}
 
-	// start service
 	s := http.NewServer(cfg.LocalUrl, issuer)
 
 	logger.Infof("spining up API server @%s", cfg.LocalUrl)

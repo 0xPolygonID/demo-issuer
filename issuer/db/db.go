@@ -13,7 +13,6 @@ var (
 	ClaimsBucketName   = []byte("claims")
 	IdentityBucketName = []byte("identities")
 	ErrKeyNotFound     = fmt.Errorf("key not found")
-	IdentityKey        = []byte("identity_key") // TODO: probably needs to be removed
 )
 
 type DB struct {
@@ -21,7 +20,6 @@ type DB struct {
 }
 
 func New(dbFilePath string) (*DB, error) {
-	//conn, err := bbolt.Open("database.conn", 0600, nil)
 	logger.Debugf("opening new DB connection (file-path: %s)", dbFilePath)
 	conn, err := bbolt.Open(dbFilePath, 0600, nil)
 	if err != nil {
@@ -56,41 +54,12 @@ func (db *DB) GetConnection() *bbolt.DB {
 	return db.conn
 }
 
-//func (db *DB) GetIdentity() (string, string, error) {
-//	var res string
-//
-//	return res, db.conn.View(func(tx *bbolt.Tx) error {
-//		b := tx.Bucket(IdentityBucketName)
-//
-//		if val := b.Get(IdentityKey); val != nil {
-//			return codec.NewDecoderBytes(val, &jsonHandle).Decode(res)
-//		}
-//
-//		return ErrKeyNotFound
-//	})
-//}
-
-//func (db *DB) GetIdentity() (*models.Identity, error) {
-//	res := &models.Identity{}
-//
-//	return res, db.conn.View(func(tx *bbolt.Tx) error {
-//		b := tx.Bucket(IdentityBucketName)
-//
-//		if val := b.Get(IdentityKey); val != nil {
-//			return codec.NewDecoderBytes(val, &jsonHandle).Decode(res)
-//		}
-//
-//		return ErrKeyNotFound
-//	})
-//}
-
 func (db *DB) SaveIdentity(id, authClaimId []byte) error {
 	return db.conn.Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket(IdentityBucketName).Put(id, authClaimId)
 	})
 }
 
-// TODO: remove ID complicated implementation
 func (db *DB) GetClaim(key []byte) (*claim.Claim, error) {
 	claimB := make([]byte, 0)
 
@@ -134,7 +103,6 @@ func (db *DB) GetAllClaims() ([]claim.Claim, error) {
 	res := []claim.Claim{}
 
 	return res, db.conn.View(func(tx *bbolt.Tx) error {
-
 		b := tx.Bucket(ClaimsBucketName)
 
 		return b.ForEach(func(k, v []byte) error {
@@ -155,14 +123,10 @@ func (db *DB) GetSavedIdentity() ([]byte, []byte, error) {
 	var authClaimId []byte
 
 	err := db.conn.View(func(tx *bbolt.Tx) error {
-
 		b := tx.Bucket(IdentityBucketName)
-
 		return b.ForEach(func(k, v []byte) error {
-
 			id = k
 			authClaimId = v
-
 			return nil
 		})
 	})

@@ -11,7 +11,7 @@ import (
 
 const (
 	wasmFile         = "circuit.wasm"
-	verificationFile = "verification_key.json"
+	verificationFile = "auth.json"
 	proofingKeyFile  = "circuit_final.zkey"
 )
 
