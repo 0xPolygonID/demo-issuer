@@ -67,6 +67,10 @@ func CreateApp(altCfgPath string) error {
 }
 
 func secretKeyToBabyJub(sk string) (babyjub.PrivateKey, error) {
+	if len(sk) == 0 {
+		return babyjub.NewRandPrivKey(), nil
+	}
+
 	b, err := hex.DecodeString(sk)
 	if err != nil {
 		return babyjub.PrivateKey{}, err
