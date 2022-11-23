@@ -20,7 +20,7 @@ You can find further information on our [associated documentation](https://demoi
 
 ### Run the Age KYC demo
 
-1. Run ```make -j4``` on the root of the repo to run the age KYC demo.
+1. Run ```make -j4``` on the root of the repo.
 2. Issuer available at [localhost:3001](http://localhost:3001), Verifer available at [localhost:3002](http://localhost:3002).
 3. Follow the instructions on screen with the [KYC Demo documentation](https://demoissuer.gitbook.io/demoissuer/kyc-age-demo).
 
