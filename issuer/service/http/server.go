@@ -201,7 +201,14 @@ func (s *Server) getAuthVerificationRequest(w http.ResponseWriter, r *http.Reque
 func (s *Server) getAgeVerificationRequest(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Server.getAgeVerificationRequest() invoked")
 
-	resB, sessionId, err := s.issuer.CommHandler.GetAgeVerificationRequest()
+	circuitType := r.URL.Query().Get("circuitType")
+	if circuitType == "" {
+		logger.Errorf("Circuit type is empty")
+		EncodeResponse(w, http.StatusInternalServerError, "Circuit type is empty")
+		return
+	}
+
+	resB, sessionId, err := s.issuer.CommHandler.GetAgeVerificationRequest(circuitType)
 	if err != nil {
 		logger.Errorf("Server -> issuer.CommHandler.GetAuthVerificationRequest() return err, err: %v", err)
 		EncodeResponse(w, http.StatusInternalServerError, fmt.Sprintf("can't get auth verification request. err: %v", err))

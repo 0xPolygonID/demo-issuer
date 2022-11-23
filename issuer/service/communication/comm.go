@@ -66,7 +66,7 @@ func (h *Handler) GetAuthVerificationRequest() ([]byte, string, error) {
 	return msgBytes, sId, nil
 }
 
-func (h *Handler) GetAgeVerificationRequest() ([]byte, string, error) {
+func (h *Handler) GetAgeVerificationRequest(circuitType string) ([]byte, string, error) {
 	sId := strconv.Itoa(rand.Intn(1000000))
 
 	hostUrl := h.publicUrl
@@ -81,9 +81,16 @@ func (h *Handler) GetAgeVerificationRequest() ([]byte, string, error) {
 	request.ID = uuid.New().String()
 	request.ThreadID = uuid.New().String()
 
+	switch circuitType {
+	case string(circuits.AtomicQueryMTPCircuitID):
+	case string(circuits.AtomicQuerySigCircuitID):
+	default:
+		return nil, "", fmt.Errorf("'%s' unsupported circuit type")
+	}
+
 	var mtpProofRequest protocol.ZeroKnowledgeProofRequest
 	mtpProofRequest.ID = 1
-	mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigCircuitID)
+	mtpProofRequest.CircuitID = circuitType
 	mtpProofRequest.Rules = map[string]interface{}{
 		"query": pubsignals.Query{
 			AllowedIssuers: []string{"*"},
