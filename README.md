@@ -19,11 +19,12 @@ You can find further information on our [associated documentation](https://demoi
 *used only in the KYC demo
 
 ### Run the Age KYC demo
-
+If you are on Unix based system, you can run the following:
 1. Run ```make -j4``` on the root of the repo.
 2. Issuer available at [localhost:3001](http://localhost:3001), Verifer available at [localhost:3002](http://localhost:3002).
-3. Follow the instructions on screen with the [KYC Demo documentation](https://demoissuer.gitbook.io/demoissuer/kyc-age-demo).
+3. Follow the instructions on screen along with the [KYC Demo documentation](https://demoissuer.gitbook.io/demoissuer/kyc-age-demo).
 
+If you are on Windows or encounter issues with the one-line script, you can run it manually by following the steps in the [getting started](https://polygon-id.gitbook.io/demoissuer/kyc-age-demo#getting-started) section
 ### Run the Demo Issuer separately
 
 1. Setup the configuration in the [config file](issuer/issuer_config.default.yaml).
