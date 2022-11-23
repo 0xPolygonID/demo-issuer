@@ -60,7 +60,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
         />
         <Box>
           <Paragraph sx={{ variant: "text.para" }}>
-            This claim proves you are born on {month}/{day}/{year} <span style={{ fontSize: "16px" }}>(mm/dd/yyyy)</span>
+            This claim proves you were born on {month}/{day}/{year} <span style={{ fontSize: "14px" }}>(mm/dd/yyyy)</span>
           </Paragraph>
         </Box>
         <Box>

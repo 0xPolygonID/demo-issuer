@@ -80,7 +80,6 @@ func NewIdentityState(db *db.DB) (*IdentityState, error) {
 
 func (is *IdentityState) SetupGenesisState(pk *babyjub.PublicKey) (*core.ID, *core.Claim, error) {
 	logger.Trace("getting auth schema hash")
-
 	schemaHash, err := core.NewSchemaHashFromHex(schema.AuthBJJCredentialHash)
 	if err != nil {
 		return nil, nil, err

@@ -8,6 +8,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const [loading, setLoading] = useState(true);
   const [qrDataSig, setQRDataSig] = useState({});
   const [qrDataMTP, setQRDataMTP] = useState({});
+  const [dateData, setDateData] = useState({});
 
   const checkVerificationStatus = async (sessionID: string) => {
     try {
@@ -35,8 +36,17 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
           "http://" +props.issuerLocalUrl + "/api/v1/requests/age-kyc?circuitType=credentialAtomicQueryMTP"
       )
 
+
       setQRDataSig(respSig.data);
       setQRDataMTP(respMTP.data)
+
+      const dateLessThan = `${respSig.data.body.scope[0].rules.query.req.birthday.$lt}`;
+      const year = dateLessThan.substring(0, 4);
+      const month = dateLessThan.substring(4, 6);
+      const day = dateLessThan.substring(6, 8);
+      const parsedDate = month + "/" + day + "/" + year;
+
+      setDateData(parsedDate);
       setLoading(false);
 
       const sessionSigID = respSig.headers["x-id"];
@@ -92,7 +102,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
           </Flex>
 
           <Paragraph sx={{ variant: "text.para" }}>
-            Scan this to verify you are above 22 years old.
+            Scan this to verify you were born before the date {dateData}.
           </Paragraph>
         </Flex>
       )}

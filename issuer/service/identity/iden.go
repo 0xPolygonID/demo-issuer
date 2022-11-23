@@ -43,6 +43,8 @@ func New(
 	cfg *cfgs.IssuerConfig,
 	stateStore StateStore,
 ) (*Identity, error) {
+	logger.Debug("construct the issuer's identity")
+
 	iden := &Identity{
 		state:         s,
 		schemaBuilder: schemaBuilder,
@@ -59,6 +61,8 @@ func New(
 	}
 
 	if id != nil && len(id) > 0 { // case: identity found -> load identity
+		logger.Debug("loading existing identity from DB")
+
 		iden.Identifier = id
 		iden.authClaimId = authClaimId
 		iden.state.CommittedState = state.CommittedState{
@@ -73,6 +77,8 @@ func New(
 		}
 		iden.authClaim = ac.CoreClaim
 	} else { // case: identity not found -> init new identity
+		logger.Debug("creating new identity (didnt find pre-existing identity)")
+
 		err = iden.init()
 		if err != nil {
 			return nil, fmt.Errorf("error on identitiy initialization, %v", err)
@@ -82,12 +88,12 @@ func New(
 	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
 	iden.CmdHandler = command.NewHandler(iden.Identifier, iden.state, cfg.KeyDir)
 
+	logger.Debugf("finished construct issuer's identity (identifier: %s)", iden.Identifier.String())
 	return iden, nil
 }
 
 func (i *Identity) init() error {
-	logger.Debug("Identity.init() invoked")
-
+	logger.Trace("Identity.init() invoked")
 	logger.Debug("setup genesis state")
 	identifier, authClaim, err := i.state.SetupGenesisState(i.sk.Public())
 	if err != nil {
@@ -103,10 +109,9 @@ func (i *Identity) init() error {
 	}
 
 	i.Identifier = identifier
-	logger.Debugf("identity identifier: %v", i.Identifier)
+	logger.Tracef("identity identifier: %v", i.Identifier)
 
 	logger.Debug("generating auth claim proof")
-
 	proof, err := i.generateProof(authClaim)
 	if err != nil {
 		return err
@@ -142,6 +147,8 @@ func (i *Identity) init() error {
 }
 
 func (i *Identity) generateProof(claim *core.Claim) ([]byte, error) {
+	logger.Debug("identity generating proof of inclusion (of a claim)")
+
 	hIndex, err := claim.HIndex()
 	if err != nil {
 		return nil, err
@@ -195,7 +202,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		SubjectPosition: cReq.SubjectPosition,
 	}
 
-	logger.Trace("generating core-claim from the request")
+	logger.Debug("generating core-claim from the request")
 	coreClaim, err := claim.GenerateCoreClaim(claimReq)
 	if err != nil {
 		return nil, err
@@ -226,7 +233,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	claimModel.CredentialStatus = cs
 	logger.Trace("finished creating the claim object from the user request")
 
-	logger.Trace("signing claim entry")
+	logger.Debug("signing claim entry")
 	newClaimSig, err := claim.SignClaimEntry(coreClaim, i.sign)
 	if err != nil {
 		return nil, err
@@ -237,6 +244,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
+	logger.Debug("construct sig proof")
 	sigProof, err := claim.ConstructSigProof(authClaim, newClaimSig)
 	if err != nil {
 		return nil, err
@@ -255,7 +263,7 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 	claimModel.SignatureProof = jsonSignatureProof
 	claimModel.Data = cReq.Data
 
-	logger.Trace("adding claim to the claims DB")
+	logger.Debug("adding claim to the claims DB")
 	err = i.state.AddClaimToDB(claimModel)
 	if err != nil {
 		return nil, err
