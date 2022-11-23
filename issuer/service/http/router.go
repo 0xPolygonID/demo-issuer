@@ -29,7 +29,7 @@ func newRouter(s *Server) chi.Router {
 		root.Use(render.SetContentType(render.ContentTypeJSON))
 
 		root.Route("/identity", func(r chi.Router) {
-			r.Post("/", s.getIdentity)
+			r.Get("/", s.getIdentity)
 			r.Post("/publish", s.publish)
 		})
 
