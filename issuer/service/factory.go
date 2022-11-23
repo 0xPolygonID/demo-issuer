@@ -49,13 +49,13 @@ func CreateApp(altCfgPath string) error {
 
 	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
 
-	chstore, err := blockchain.NewBlockchainConnect(cfg.NodeRpcUrl, cfg.ContractAddress, cfg.Identity.PublishingKey)
+	stateManager, err := blockchain.NewStateManager(cfg.NodeRpcUrl, cfg.ContractAddress, cfg.Identity.PublishingKey)
 	if err != nil {
 		return err
 	}
 
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg, chstore)
+	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg, stateManager)
 	if err != nil {
 		return err
 	}

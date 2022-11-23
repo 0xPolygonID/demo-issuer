@@ -203,8 +203,8 @@ func (s *Server) getAgeVerificationRequest(w http.ResponseWriter, r *http.Reques
 
 	circuitType := r.URL.Query().Get("circuitType")
 	if circuitType == "" {
-		logger.Errorf("Circuit type is empty")
-		EncodeResponse(w, http.StatusInternalServerError, "Circuit type is empty")
+		logger.Errorf("circuit type is empty")
+		EncodeResponse(w, http.StatusBadRequest, "circuit type is empty")
 		return
 	}
 

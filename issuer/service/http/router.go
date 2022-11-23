@@ -16,7 +16,6 @@ func newRouter(s *Server) chi.Router {
 	r.Use(middleware.RealIP)
 
 	corsMiddleware := cors.New(cors.Options{
-		//AllowedOrigins:   []string{"localhost", "127.0.0.1", "*"},
 		AllowedOrigins:   []string{"http://*", "https://*", "*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},

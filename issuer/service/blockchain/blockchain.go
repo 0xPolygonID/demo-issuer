@@ -20,13 +20,13 @@ import (
 	"time"
 )
 
-type Blockchain struct {
+type StateManager struct {
 	client          *ethclient.Client
 	contractAddress common.Address
 	privateKey      *ecdsa.PrivateKey
 }
 
-func NewBlockchainConnect(nodeAddress, contractAddress, pk string) (*Blockchain, error) {
+func NewStateManager(nodeAddress, contractAddress, pk string) (*StateManager, error) {
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
 		return nil, err
@@ -36,14 +36,14 @@ func NewBlockchainConnect(nodeAddress, contractAddress, pk string) (*Blockchain,
 	if err != nil {
 		return nil, err
 	}
-	return &Blockchain{
+	return &StateManager{
 		client:          ethClient,
 		contractAddress: common.HexToAddress(contractAddress),
 		privateKey:      privateKey,
 	}, nil
 }
 
-func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *identity.TransitionInfoRequest) (string, error) {
+func (ps *StateManager) UpdateState(ctx context.Context, trInfo *identity.TransitionInfoRequest) (string, error) {
 	if trInfo.NewState.Equals(trInfo.LatestState) {
 		return "", errors.New("state hasn't been changed")
 	}
@@ -68,7 +68,7 @@ func (ps *Blockchain) UpdateState(ctx context.Context, trInfo *identity.Transiti
 	return tx.Hash().Hex(), nil
 }
 
-func (ps *Blockchain) WaitTransaction(ctx context.Context, txHex string) (*identity.TransitionInfoResponse, error) {
+func (ps *StateManager) WaitTransaction(ctx context.Context, txHex string) (*identity.TransitionInfoResponse, error) {
 	txID := common.HexToHash(txHex)
 	receipt, err := ps.waitingReceipt(ctx, txID)
 	if err != nil {
@@ -89,7 +89,7 @@ func (ps *Blockchain) WaitTransaction(ctx context.Context, txHex string) (*ident
 	}, nil
 }
 
-func (ps *Blockchain) waitConfirmation(ctx context.Context, hash common.Hash, formBlock *big.Int) error {
+func (ps *StateManager) waitConfirmation(ctx context.Context, hash common.Hash, formBlock *big.Int) error {
 	tryCount := 100
 	for tryCount > 0 {
 		latestBlock, err := ps.client.BlockNumber(ctx)
@@ -106,7 +106,7 @@ func (ps *Blockchain) waitConfirmation(ctx context.Context, hash common.Hash, fo
 	return fmt.Errorf("transaction '%s' is stuck", hash)
 }
 
-func (ps *Blockchain) waitingReceipt(ctx context.Context, hash common.Hash) (*types.Receipt, error) {
+func (ps *StateManager) waitingReceipt(ctx context.Context, hash common.Hash) (*types.Receipt, error) {
 	tryCount := 100
 	for tryCount > 0 {
 		receipt, err := ps.client.TransactionReceipt(ctx, hash)
@@ -130,11 +130,11 @@ func (ps *Blockchain) waitingReceipt(ctx context.Context, hash common.Hash) (*ty
 	return nil, fmt.Errorf("all attempts are used")
 }
 
-func (ps *Blockchain) getBlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+func (ps *StateManager) getBlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
 	return ps.client.BlockByNumber(ctx, number)
 }
 
-func (ps *Blockchain) sendTransaction(ctx context.Context, from, to common.Address, payload []byte) (*types.Transaction, error) {
+func (ps *StateManager) sendTransaction(ctx context.Context, from, to common.Address, payload []byte) (*types.Transaction, error) {
 	nonce, err := ps.client.PendingNonceAt(ctx, from)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get nonce")
@@ -198,7 +198,7 @@ func (ps *Blockchain) sendTransaction(ctx context.Context, from, to common.Addre
 	return signedTx, nil
 }
 
-func (ps *Blockchain) getStatePayload(ti *identity.TransitionInfoRequest) ([]byte, error) {
+func (ps *StateManager) getStatePayload(ti *identity.TransitionInfoRequest) ([]byte, error) {
 	a, b, c, err := ti.Proof.ProofToBigInts()
 	if err != nil {
 		return nil, err

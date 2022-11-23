@@ -85,7 +85,11 @@ func New(
 		}
 	}
 
-	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
+	iden.CommHandler, err = communication.NewCommunicationHandler(iden.Identifier.String(), cfg)
+	if err != nil {
+		return nil, fmt.Errorf("error on communication initialization, %v", err)
+	}
+
 	iden.CmdHandler = command.NewHandler(iden.Identifier, iden.state, cfg.KeyDir)
 
 	logger.Debugf("finished construct issuer's identity (identifier: %s)", iden.Identifier.String())
