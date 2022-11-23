@@ -80,7 +80,7 @@ func New(
 	}
 
 	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
-	iden.CmdHandler = command.NewHandler(iden.state, cfg.KeyDir)
+	iden.CmdHandler = command.NewHandler(iden.Identifier, iden.state, cfg.KeyDir)
 
 	return iden, nil
 }
@@ -282,7 +282,7 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 		if err != nil {
 			return nil, err
 		}
-		mtp, err := i.getMTPProof(claimIdx)
+		mtp, err := i.state.GetMTPProof(i.Identifier, claimIdx)
 		if err != nil {
 			return nil, err
 		}
@@ -401,47 +401,4 @@ func (i *Identity) sign(z *big.Int) ([]byte, error) {
 
 	sig := i.sk.SignPoseidon(z).Compress()
 	return sig[:], nil
-}
-
-func (i *Identity) getMTPProof(claimIdx *big.Int) (*verifiable.Iden3SparseMerkleProof, error) {
-	mtpProof, _, err := i.state.Claims.Tree.GenerateProof(
-		context.Background(), claimIdx, i.state.CommittedState.ClaimsTreeRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	if i.state.CommittedState.Info.TxId == "" {
-		return nil, errors.New("failed generate mtp proof. Transaction not exists")
-	}
-
-	txID := i.state.CommittedState.Info.TxId
-	blockTimestamp := int(i.state.CommittedState.Info.BlockTimestamp)
-	blockNumber := int(i.state.CommittedState.Info.BlockNumber)
-	committedState, err := i.state.CommittedState.State()
-	if err != nil {
-		return nil, err
-	}
-
-	mtp := &verifiable.Iden3SparseMerkleProof{
-		Type: verifiable.Iden3SparseMerkleProofType,
-		IssuerData: verifiable.IssuerData{
-			ID: i.Identifier,
-			State: verifiable.State{
-				TxID:               &txID,
-				BlockTimestamp:     &blockTimestamp,
-				BlockNumber:        &blockNumber,
-				RootOfRoots:        strptr(i.state.CommittedState.RootsTreeRoot.Hex()),
-				ClaimsTreeRoot:     strptr(i.state.CommittedState.ClaimsTreeRoot.Hex()),
-				RevocationTreeRoot: strptr(i.state.CommittedState.RevocationTreeRoot.Hex()),
-				Value:              strptr(committedState.Hex()),
-			},
-		},
-		MTP: mtpProof,
-	}
-
-	return mtp, nil
-}
-
-func strptr(s string) *string {
-	return &s
 }

@@ -2,11 +2,13 @@ package state
 
 import (
 	"context"
+	"errors"
 	store "github.com/demonsh/smt-bolt"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql"
+	"github.com/iden3/go-schema-processor/verifiable"
 	logger "github.com/sirupsen/logrus"
 	"issuer/db"
 	"issuer/service/claim"
@@ -184,4 +186,47 @@ func (is *IdentityState) GetRevocationProof(claim *core.Claim) (*merkletree.Proo
 		return nil, nil, err
 	}
 	return is.Revocations.Tree.GenerateProof(context.Background(), hi, is.CommittedState.RevocationTreeRoot)
+}
+
+func (is *IdentityState) GetMTPProof(identifier *core.ID, claimIdx *big.Int) (*verifiable.Iden3SparseMerkleProof, error) {
+	mtpProof, _, err := is.Claims.Tree.GenerateProof(
+		context.Background(), claimIdx, is.CommittedState.ClaimsTreeRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	if is.CommittedState.Info.TxId == "" {
+		return nil, errors.New("failed generate mtp proof. Transaction not exists")
+	}
+
+	txID := is.CommittedState.Info.TxId
+	blockTimestamp := int(is.CommittedState.Info.BlockTimestamp)
+	blockNumber := int(is.CommittedState.Info.BlockNumber)
+	committedState, err := is.CommittedState.State()
+	if err != nil {
+		return nil, err
+	}
+
+	mtp := &verifiable.Iden3SparseMerkleProof{
+		Type: verifiable.Iden3SparseMerkleProofType,
+		IssuerData: verifiable.IssuerData{
+			ID: identifier,
+			State: verifiable.State{
+				TxID:               &txID,
+				BlockTimestamp:     &blockTimestamp,
+				BlockNumber:        &blockNumber,
+				RootOfRoots:        strptr(is.CommittedState.RootsTreeRoot.Hex()),
+				ClaimsTreeRoot:     strptr(is.CommittedState.ClaimsTreeRoot.Hex()),
+				RevocationTreeRoot: strptr(is.CommittedState.RevocationTreeRoot.Hex()),
+				Value:              strptr(committedState.Hex()),
+			},
+		},
+		MTP: mtpProof,
+	}
+
+	return mtp, nil
+}
+
+func strptr(s string) *string {
+	return &s
 }

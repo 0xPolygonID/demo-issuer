@@ -97,7 +97,7 @@ func (ps *Blockchain) waitConfirmation(ctx context.Context, hash common.Hash, fo
 			return err
 		}
 		diff := latestBlock - formBlock.Uint64()
-		if diff > 10 {
+		if diff > 3 {
 			return nil
 		}
 		tryCount--

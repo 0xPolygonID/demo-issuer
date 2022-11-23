@@ -49,6 +49,11 @@ func (p *Publisher) PrepareInputs() ([]byte, error) {
 		return nil, err
 	}
 
+	err = p.i.state.Roots.Tree.Add(context.Background(), oldState.ClaimsRoot.BigInt(), merkletree.HashZero.BigInt())
+	if err != nil {
+		return nil, err
+	}
+
 	newState, err := p.i.state.GetStateHash()
 	if err != nil {
 		return nil, err

@@ -16,17 +16,20 @@ import (
 )
 
 type Handler struct {
-	idenState *state.IdentityState
-	keysPath  string
+	issuerIdentifier *core.ID
+	idenState        *state.IdentityState
+	keysPath         string
 }
 
 func NewHandler(
+	issuerIdentifier *core.ID,
 	state *state.IdentityState,
 	keysPath string,
 ) *Handler {
 	return &Handler{
-		idenState: state,
-		keysPath:  keysPath,
+		issuerIdentifier: issuerIdentifier,
+		idenState:        state,
+		keysPath:         keysPath,
 	}
 }
 
@@ -65,6 +68,21 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 	}
 	if c.OtherIdentifier != basicMessage.From {
 		return nil, err
+	}
+
+	if !comm.idenState.CommittedState.IsLatestStateGenesis {
+		claimIdx, err := c.CoreClaim.HIndex()
+		if err != nil {
+			return nil, err
+		}
+		mtp, err := comm.idenState.GetMTPProof(comm.issuerIdentifier, claimIdx)
+		if err != nil {
+			return nil, err
+		}
+		c.MTPProof, err = json.Marshal(mtp)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cred, err := claim.ClaimModelToIden3Credential(c)
