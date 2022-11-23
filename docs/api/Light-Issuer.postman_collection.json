@@ -268,7 +268,7 @@
 		},
 		{
 			"key": "user_identity",
-			"value": " 113TCVw5KMeMp99Qdvub9Mssfz7krL9jWNvbdB7Fd2",
+			"value": "113TCVw5KMeMp99Qdvub9Mssfz7krL9jWNvbdB7Fd2",
 			"type": "string"
 		},
 		{
@@ -278,7 +278,7 @@
 		},
 		{
 			"key": "issuer_identity",
-			"value": " 113TCVw5KMeMp99Qdvub9Mssfz7krL9jWNvbdB7Fd2"
+			"value": "113TCVw5KMeMp99Qdvub9Mssfz7krL9jWNvbdB7Fd2"
 		},
 		{
 			"key": "age_claim_id",
