@@ -30,7 +30,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating DB")
-	db, err := database.New(cfg.DBFilePath)
+	db, err := database.New(cfg.DBFilePath, cfg.RemoveOldDB)
 	if err != nil {
 		return err
 	}

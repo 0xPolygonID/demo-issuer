@@ -4,10 +4,10 @@ key_dir: keys
 ipfs_url: ipfs.io
 node_rpc_url:
 contract_address: 0x46Fd04eEa588a3EA7e9F055dd691C688c4148ab3
-
+remove_old_db: true
 identity:
   publishing_key:
   secret_key:
 
 local_url: 'localhost:8001'
-public_url: https://b657-77-70-94-216.eu.ngrok.io
+public_url: https://eaae-46-121-236-63.eu.ngrok.io

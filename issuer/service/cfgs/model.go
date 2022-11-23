@@ -3,6 +3,7 @@ package cfgs
 type IssuerConfig struct {
 	LogLevel        string   `mapstructure:"LOG_LEVEL" yaml:"log_level"`
 	DBFilePath      string   `mapstructure:"DB_FILE_PATH" yaml:"db_file_path"`
+	RemoveOldDB     bool     `mapstructure:"REMOVE_OLD_DB" yaml:"remove_old_db"`
 	KeyDir          string   `mapstructure:"KEY_DIR" yaml:"key_dir"`
 	PublicUrl       string   `mapstructure:"PUBLIC_URL" yaml:"public_url"`
 	LocalUrl        string   `mapstructure:"LOCAL_URL" yaml:"local_url"`

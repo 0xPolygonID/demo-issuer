@@ -6,6 +6,7 @@ import (
 	"github.com/ugorji/go/codec"
 	"go.etcd.io/bbolt"
 	"issuer/service/claim"
+	"os"
 )
 
 var (
@@ -19,7 +20,12 @@ type DB struct {
 	conn *bbolt.DB
 }
 
-func New(dbFilePath string) (*DB, error) {
+func New(dbFilePath string, removeOldDB bool) (*DB, error) {
+	if removeOldDB {
+		logger.Info("DB: remove-old-DB flag is true -> delete DB file to start from a clean state")
+		_ = os.Remove(dbFilePath)
+	}
+
 	logger.Debugf("DB: opening new DB connection (file-path: %s)", dbFilePath)
 	conn, err := bbolt.Open(dbFilePath, 0600, nil)
 	if err != nil {
