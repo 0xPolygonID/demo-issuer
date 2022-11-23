@@ -5,6 +5,7 @@ import (
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	logger "github.com/sirupsen/logrus"
 	database "issuer/db"
+	"issuer/service/blockchain"
 	"issuer/service/cfgs"
 	"issuer/service/http"
 	"issuer/service/identity"
@@ -29,7 +30,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating DB")
-	db, err := database.New(cfg.DBFilePath)
+	db, err := database.New(cfg.DBFilePath, cfg.RemoveOldDB)
 	if err != nil {
 		return err
 	}
@@ -47,8 +48,14 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
+
+	stateManager, err := blockchain.NewStateManager(cfg.NodeRpcUrl, cfg.ContractAddress, cfg.Identity.PublishingKey)
+	if err != nil {
+		return err
+	}
+
 	logger.Info("creating Identity")
-	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg)
+	issuer, err := identity.New(idenState, schemaBuilder, sk, cfg, stateManager)
 	if err != nil {
 		return err
 	}
@@ -60,6 +67,10 @@ func CreateApp(altCfgPath string) error {
 }
 
 func secretKeyToBabyJub(sk string) (babyjub.PrivateKey, error) {
+	if len(sk) == 0 {
+		return babyjub.NewRandPrivKey(), nil
+	}
+
 	b, err := hex.DecodeString(sk)
 	if err != nil {
 		return babyjub.PrivateKey{}, err

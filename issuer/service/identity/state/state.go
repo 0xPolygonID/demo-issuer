@@ -1,20 +1,46 @@
 package state
 
 import (
+	"context"
+	"errors"
 	store "github.com/demonsh/smt-bolt"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql"
+	"github.com/iden3/go-schema-processor/verifiable"
 	logger "github.com/sirupsen/logrus"
 	"issuer/db"
 	"issuer/service/claim"
 	"issuer/service/schema"
+	"math/big"
 )
+
+// Info contains information about when the state was committed.
+type Info struct {
+	TxId           string
+	BlockTimestamp uint64
+	BlockNumber    uint64
+}
+
+type CommittedState struct {
+	Info *Info
+
+	IsLatestStateGenesis bool
+	RootsTreeRoot        *merkletree.Hash
+	ClaimsTreeRoot       *merkletree.Hash
+	RevocationTreeRoot   *merkletree.Hash
+}
+
+func (cs *CommittedState) State() (*merkletree.Hash, error) {
+	return merkletree.HashElems(cs.ClaimsTreeRoot.BigInt(), cs.RevocationTreeRoot.BigInt(), cs.RootsTreeRoot.BigInt())
+}
 
 const treeDepth = 32
 
 type IdentityState struct {
+	CommittedState CommittedState
+
 	Claims      *Claims
 	Revocations *Revocations
 	Roots       *Roots
@@ -137,4 +163,69 @@ func (is *IdentityState) GetStateHash() (*merkletree.Hash, error) {
 		is.Revocations.Tree.Root().BigInt(),
 		is.Roots.Tree.Root().BigInt(),
 	)
+}
+
+func (is *IdentityState) IsGenesis() bool {
+	return is.Claims.Tree.Root().Equals(&merkletree.HashZero) &&
+		is.Roots.Tree.Root().Equals(&merkletree.HashZero) &&
+		is.Revocations.Tree.Root().Equals(&merkletree.HashZero)
+}
+
+func (is *IdentityState) GetInclusionProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
+	hi, _, err := claim.HiHv()
+	if err != nil {
+		return nil, nil, err
+	}
+	return is.Claims.Tree.GenerateProof(context.Background(), hi, is.CommittedState.ClaimsTreeRoot)
+}
+
+func (is *IdentityState) GetRevocationProof(claim *core.Claim) (*merkletree.Proof, *big.Int, error) {
+	hi, _, err := claim.HiHv()
+	if err != nil {
+		return nil, nil, err
+	}
+	return is.Revocations.Tree.GenerateProof(context.Background(), hi, is.CommittedState.RevocationTreeRoot)
+}
+
+func (is *IdentityState) GetMTPProof(identifier *core.ID, claimIdx *big.Int) (*verifiable.Iden3SparseMerkleProof, error) {
+	mtpProof, _, err := is.Claims.Tree.GenerateProof(
+		context.Background(), claimIdx, is.CommittedState.ClaimsTreeRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	if is.CommittedState.Info.TxId == "" {
+		return nil, errors.New("failed generate mtp proof. Transaction not exists")
+	}
+
+	txID := is.CommittedState.Info.TxId
+	blockTimestamp := int(is.CommittedState.Info.BlockTimestamp)
+	blockNumber := int(is.CommittedState.Info.BlockNumber)
+	committedState, err := is.CommittedState.State()
+	if err != nil {
+		return nil, err
+	}
+
+	mtp := &verifiable.Iden3SparseMerkleProof{
+		Type: verifiable.Iden3SparseMerkleProofType,
+		IssuerData: verifiable.IssuerData{
+			ID: identifier,
+			State: verifiable.State{
+				TxID:               &txID,
+				BlockTimestamp:     &blockTimestamp,
+				BlockNumber:        &blockNumber,
+				RootOfRoots:        strptr(is.CommittedState.RootsTreeRoot.Hex()),
+				ClaimsTreeRoot:     strptr(is.CommittedState.ClaimsTreeRoot.Hex()),
+				RevocationTreeRoot: strptr(is.CommittedState.RevocationTreeRoot.Hex()),
+				Value:              strptr(committedState.Hex()),
+			},
+		},
+		MTP: mtpProof,
+	}
+
+	return mtp, nil
+}
+
+func strptr(s string) *string {
+	return &s
 }

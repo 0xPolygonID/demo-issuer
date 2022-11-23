@@ -22,15 +22,18 @@ import (
 )
 
 type Identity struct {
-	sk          babyjub.PrivateKey
-	Identifier  *core.ID
-	authClaimId *uuid.UUID
-	publicUrl   string
+	sk           babyjub.PrivateKey
+	Identifier   *core.ID
+	authClaimId  *uuid.UUID
+	authClaim    *core.Claim
+	publicUrl    string
+	circuitsPath string
 
 	state         *state.IdentityState
 	CmdHandler    *command.Handler
 	CommHandler   *communication.Handler
 	schemaBuilder *schema.Builder
+	stateStore    StateStore
 }
 
 func New(
@@ -38,6 +41,7 @@ func New(
 	schemaBuilder *schema.Builder,
 	sk babyjub.PrivateKey,
 	cfg *cfgs.IssuerConfig,
+	stateStore StateStore,
 ) (*Identity, error) {
 	logger.Debug("construct the issuer's identity")
 
@@ -45,8 +49,10 @@ func New(
 		state:         s,
 		schemaBuilder: schemaBuilder,
 
-		sk:        sk,
-		publicUrl: cfg.PublicUrl,
+		sk:           sk,
+		publicUrl:    cfg.PublicUrl,
+		circuitsPath: cfg.KeyDir,
+		stateStore:   stateStore,
 	}
 
 	id, authClaimId, err := iden.state.GetIdentityFromDB()
@@ -59,6 +65,17 @@ func New(
 
 		iden.Identifier = id
 		iden.authClaimId = authClaimId
+		iden.state.CommittedState = state.CommittedState{
+			IsLatestStateGenesis: iden.state.IsGenesis(),
+			RootsTreeRoot:        iden.state.Roots.Tree.Root(),
+			ClaimsTreeRoot:       iden.state.Claims.Tree.Root(),
+			RevocationTreeRoot:   iden.state.Revocations.Tree.Root(),
+		}
+		ac, err := iden.state.Claims.GetClaim([]byte(authClaimId.String()))
+		if err != nil {
+			return nil, err
+		}
+		iden.authClaim = ac.CoreClaim
 	} else { // case: identity not found -> init new identity
 		logger.Debug("creating new identity (didnt find pre-existing identity)")
 
@@ -68,8 +85,12 @@ func New(
 		}
 	}
 
-	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), *cfg)
-	iden.CmdHandler = command.NewHandler(iden.state, cfg.KeyDir)
+	iden.CommHandler, err = communication.NewCommunicationHandler(iden.Identifier.String(), cfg)
+	if err != nil {
+		return nil, fmt.Errorf("error on communication initialization, %v", err)
+	}
+
+	iden.CmdHandler = command.NewHandler(iden.Identifier, iden.state, cfg.KeyDir)
 
 	logger.Debugf("finished construct issuer's identity (identifier: %s)", iden.Identifier.String())
 	return iden, nil
@@ -81,6 +102,14 @@ func (i *Identity) init() error {
 	identifier, authClaim, err := i.state.SetupGenesisState(i.sk.Public())
 	if err != nil {
 		return err
+	}
+
+	i.authClaim = authClaim
+	i.state.CommittedState = state.CommittedState{
+		IsLatestStateGenesis: true,
+		ClaimsTreeRoot:       i.state.Claims.Tree.Root(),
+		RevocationTreeRoot:   i.state.Revocations.Tree.Root(),
+		RootsTreeRoot:        i.state.Roots.Tree.Root(),
 	}
 
 	i.Identifier = identifier
@@ -183,6 +212,16 @@ func (i *Identity) CreateClaim(cReq *issuer_contract.CreateClaimRequest) (*issue
 		return nil, err
 	}
 
+	hi, hv, err := coreClaim.HiHv()
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.state.Claims.Tree.Add(context.TODO(), hi, hv)
+	if err != nil {
+		return nil, err
+	}
+
 	claimModel, err := claim.CoreClaimToClaimModel(coreClaim, cReq.Schema.URL, cReq.Schema.Type)
 	if err != nil {
 		return nil, err
@@ -250,6 +289,21 @@ func (i *Identity) GetClaim(id string) (*issuer_contract.GetClaimResponse, error
 		return nil, err
 	}
 
+	if !i.state.CommittedState.IsLatestStateGenesis {
+		claimIdx, err := claimModel.CoreClaim.HIndex()
+		if err != nil {
+			return nil, err
+		}
+		mtp, err := i.state.GetMTPProof(i.Identifier, claimIdx)
+		if err != nil {
+			return nil, err
+		}
+		claimModel.MTPProof, err = json.Marshal(mtp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	c, err := claim.ClaimModelToIden3Credential(claimModel)
 	if err != nil {
 		return nil, err
@@ -288,22 +342,68 @@ func (i *Identity) GetRevocationStatus(nonce uint64) (*issuer_contract.GetRevoca
 	rID := new(big.Int).SetUint64(nonce)
 
 	res := &issuer_contract.GetRevocationStatusResponse{}
-	mtp, err := i.state.Revocations.GenerateRevocationProof(rID)
+	mtp, err := i.state.Revocations.GenerateRevocationProof(rID, i.state.CommittedState.RevocationTreeRoot)
 	if err != nil {
 		return nil, err
 	}
 	res.MTP = mtp
-	res.Issuer.RevocationTreeRoot = i.state.Revocations.Tree.Root().Hex()
-	res.Issuer.RootOfRoots = i.state.Roots.Tree.Root().Hex()
-	res.Issuer.ClaimsTreeRoot = i.state.Claims.Tree.Root().Hex()
+	res.Issuer.RevocationTreeRoot = i.state.CommittedState.RevocationTreeRoot.Hex()
+	res.Issuer.RootOfRoots = i.state.CommittedState.RootsTreeRoot.Hex()
+	res.Issuer.ClaimsTreeRoot = i.state.CommittedState.ClaimsTreeRoot.Hex()
 
-	stateHash, err := i.state.GetStateHash()
+	stateHash, err := i.state.CommittedState.State()
 	if err != nil {
 		return nil, err
 	}
 	res.Issuer.State = stateHash.Hex()
 
 	return res, nil
+}
+
+func (i *Identity) PublishLatestState(ctx context.Context) (string, error) {
+	logger.Debug("PublishLatestState() invoked")
+
+	publisher := Publisher{
+		i:            i,
+		circuitsPath: i.circuitsPath,
+		stateStore:   i.stateStore,
+	}
+	inputs, err := publisher.PrepareInputs()
+	if err != nil {
+		return "", err
+	}
+	proof, err := publisher.GenerateProof(ctx, inputs)
+	if err != nil {
+		return "", err
+	}
+
+	latestState, err := i.state.CommittedState.State()
+	if err != nil {
+		return "", err
+	}
+	newState, err := i.state.GetStateHash()
+	if err != nil {
+		return "", err
+	}
+
+	if latestState.Equals(newState) {
+		return "", errors.New("nothing to update")
+	}
+
+	ti := &TransitionInfoRequest{
+		Identifier:        i.Identifier,
+		LatestState:       latestState,
+		NewState:          newState,
+		IsOldStateGenesis: i.state.CommittedState.IsLatestStateGenesis,
+		Proof:             proof.Proof,
+	}
+	txHex, err := publisher.UpdateState(ctx, ti)
+	if err != nil {
+		return "", err
+	}
+	logger.Info("transaction for change state:", txHex)
+
+	return txHex, nil
 }
 
 func (i *Identity) sign(z *big.Int) ([]byte, error) {

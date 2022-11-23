@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { QRCode } from "react-qr-svg";
 import axios from "axios";
 import { Layout } from "../components";
-import { Flex, Heading, Paragraph } from "theme-ui";
+import {Box, Flex, Heading, Paragraph} from "theme-ui";
 
 const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
   const [loading, setLoading] = useState(true);
-  const [qrData, setQRData] = useState({});
+  const [qrDataSig, setQRDataSig] = useState({});
+  const [qrDataMTP, setQRDataMTP] = useState({});
   const [dateData, setDateData] = useState({});
 
   const checkVerificationStatus = async (sessionID: string) => {
@@ -28,27 +29,42 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
 
   useEffect(() => {
     (async () => {
-      const resp = await axios.get(
-          "http://" +props.issuerLocalUrl + "/api/v1/requests/age-kyc"
+      const respSig = await axios.get(
+          "http://" +props.issuerLocalUrl + "/api/v1/requests/age-kyc?circuitType=credentialAtomicQuerySig"
       );
+      const respMTP = await axios.get(
+          "http://" +props.issuerLocalUrl + "/api/v1/requests/age-kyc?circuitType=credentialAtomicQueryMTP"
+      )
 
-      const dateLessThan = `${resp.data.body.scope[0].rules.query.req.birthday.$lt}`;
+
+      setQRDataSig(respSig.data);
+      setQRDataMTP(respMTP.data)
+
+      const dateLessThan = `${respSig.data.body.scope[0].rules.query.req.birthday.$lt}`;
       const year = dateLessThan.substring(0, 4);
       const month = dateLessThan.substring(4, 6);
       const day = dateLessThan.substring(6, 8);
       const parsedDate = month + "/" + day + "/" + year;
 
       setDateData(parsedDate);
-      setQRData(resp.data);
       setLoading(false);
 
-      const sessionID = resp.headers["x-id"];
+      const sessionSigID = respSig.headers["x-id"];
+      const sessionMtpID = respMTP.headers["x-id"]
 
-      const interval = setInterval(async () => {
-        const isVerified = await checkVerificationStatus(sessionID);
+      const intervalSig = setInterval(async () => {
+        const isVerified = await checkVerificationStatus(sessionSigID);
         if (isVerified) {
-          clearInterval(interval);
-          alert("verification succeeded ✅");
+          clearInterval(intervalSig);
+          alert("verification succeeded with signature proof ✅");
+        }
+      }, 2000);
+
+      const intervalMtp = setInterval(async () => {
+        const isVerified = await checkVerificationStatus(sessionMtpID);
+        if (isVerified) {
+          clearInterval(intervalMtp);
+          alert("verification succeeded with mtp proof ✅");
         }
       }, 2000);
     })();
@@ -65,11 +81,25 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
             Verify your claim 👮‍♀️
           </Heading>
 
-          <QRCode
-            level="Q"
-            style={{ width: 256 }}
-            value={JSON.stringify(qrData)}
-          />
+          <Flex>
+            <Box sx={{ margin: "0 30px 0 0" }}>
+              <Heading sx={{ textAlign: "center", fontSize: [24] }}>With signature</Heading>
+              <QRCode
+                level="Q"
+                style={{ width: 356 }}
+                value={JSON.stringify(qrDataSig)}
+              />
+            </Box>
+
+            <Box sx={{ margin: "0 0 0 30px" }}>
+              <Heading sx={{ textAlign: "center", fontSize: [24] }}>With MTP</Heading>
+              <QRCode
+                  level="Q"
+                  style={{ width: 356 }}
+                  value={JSON.stringify(qrDataMTP)}
+              />
+            </Box>
+          </Flex>
 
           <Paragraph sx={{ variant: "text.para" }}>
             Scan this to verify you were born before the date {dateData}.

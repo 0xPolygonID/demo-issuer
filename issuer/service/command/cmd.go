@@ -10,25 +10,26 @@ import (
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"io"
 	"issuer/service/claim"
 	"issuer/service/identity/state"
-	"os"
-	"path/filepath"
+	"issuer/utils"
 )
 
 type Handler struct {
-	idenState *state.IdentityState
-	keysPath  string
+	issuerIdentifier *core.ID
+	idenState        *state.IdentityState
+	keysPath         string
 }
 
 func NewHandler(
+	issuerIdentifier *core.ID,
 	state *state.IdentityState,
 	keysPath string,
 ) *Handler {
 	return &Handler{
-		idenState: state,
-		keysPath:  keysPath,
+		issuerIdentifier: issuerIdentifier,
+		idenState:        state,
+		keysPath:         keysPath,
 	}
 }
 
@@ -69,6 +70,21 @@ func (comm *Handler) Handle(body []byte) (*protocol.CredentialIssuanceMessage, e
 		return nil, err
 	}
 
+	if !comm.idenState.CommittedState.IsLatestStateGenesis {
+		claimIdx, err := c.CoreClaim.HIndex()
+		if err != nil {
+			return nil, err
+		}
+		mtp, err := comm.idenState.GetMTPProof(comm.issuerIdentifier, claimIdx)
+		if err != nil {
+			return nil, err
+		}
+		c.MTPProof, err = json.Marshal(mtp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	cred, err := claim.ClaimModelToIden3Credential(c)
 	if err != nil {
 		return nil, err
@@ -95,7 +111,7 @@ func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
 		return nil, err
 	}
 
-	verificationKey, err := getVerificationKey(comm.keysPath)
+	verificationKey, err := utils.ReadFileByPath(comm.keysPath, "auth.json")
 	if err != nil {
 		return nil, errors.New("message was packed with unsupported circuit")
 	}
@@ -124,25 +140,4 @@ func (comm *Handler) unpack(envelope []byte) (*iden3comm.BasicMessage, error) {
 	}
 
 	return msg, err
-}
-
-func getVerificationKey(basePath string) ([]byte, error) {
-	logger.Debug("CommandHandler.getVerificationKey() invoked")
-
-	return getPathToFile(basePath, "auth.json")
-}
-
-func getPathToFile(basePath string, fileName string) ([]byte, error) {
-	logger.Debug("CommandHandler.getPathToFile() invoked")
-
-	path := filepath.Join(basePath, fileName)
-	f, err := os.Open(filepath.Clean(path))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed open file '%s' by path '%s'", fileName, path)
-	}
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed read file '%s' by path '%s'", fileName, path)
-	}
-	return data, nil
 }

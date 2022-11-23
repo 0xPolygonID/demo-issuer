@@ -14,26 +14,37 @@ import (
 	"github.com/patrickmn/go-cache"
 	logger "github.com/sirupsen/logrus"
 	"issuer/service/cfgs"
-	"log"
 	"math/rand"
 	"strconv"
 	"time"
 )
 
-// TODO:
-// 1. Update the new key dir direction to the new location
-// 2. Update the url to callback, only issuer url is relevant
-
 var userSessionTracker = cache.New(60*time.Minute, 60*time.Minute)
 
-func NewCommunicationHandler(issuerId string, cfg cfgs.IssuerConfig) *Handler {
+func NewCommunicationHandler(issuerId string, cfg *cfgs.IssuerConfig) (*Handler, error) {
+	if len(cfg.KeyDir) == 0 {
+		return nil, fmt.Errorf("cfg.KeyDir is empty")
+	}
+
+	if len(cfg.PublicUrl) == 0 {
+		return nil, fmt.Errorf("cfg.PublicUrl is empty")
+	}
+
+	if len(cfg.NodeRpcUrl) == 0 {
+		return nil, fmt.Errorf("cfg.NodeRpcUrl is empty")
+	}
+
+	if len(cfg.IpfsUrl) == 0 {
+		return nil, fmt.Errorf("cfg.IpfsUrl is empty")
+	}
+
 	return &Handler{
 		issuerId:   issuerId,
 		keyDir:     cfg.KeyDir,
 		publicUrl:  cfg.PublicUrl,
 		NodeRpcUrl: cfg.NodeRpcUrl,
 		ipfsUrl:    cfg.IpfsUrl,
-	}
+	}, nil
 }
 
 type Handler struct {
@@ -72,7 +83,16 @@ func (h *Handler) GetAuthVerificationRequest() ([]byte, string, error) {
 	return msgBytes, sId, nil
 }
 
-func (h *Handler) GetAgeVerificationRequest() ([]byte, string, error) {
+func verifySupportedAgeCircuit(circuitType string) error {
+	if circuitType == string(circuits.AtomicQueryMTPCircuitID) ||
+		circuitType == string(circuits.AtomicQuerySigCircuitID) {
+		return nil
+	}
+
+	return fmt.Errorf("'%s' unsupported circuit type")
+}
+
+func (h *Handler) GetAgeVerificationRequest(circuitType string) ([]byte, string, error) {
 	logger.Debug("Communication.GetAgeVerificationRequest() invoked")
 
 	sId := strconv.Itoa(rand.Intn(1000000))
@@ -89,9 +109,13 @@ func (h *Handler) GetAgeVerificationRequest() ([]byte, string, error) {
 	request.ID = uuid.New().String()
 	request.ThreadID = uuid.New().String()
 
+	if err := verifySupportedAgeCircuit(circuitType); err != nil {
+		return nil, "", err
+	}
+
 	var mtpProofRequest protocol.ZeroKnowledgeProofRequest
 	mtpProofRequest.ID = 1
-	mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigCircuitID)
+	mtpProofRequest.CircuitID = circuitType
 	mtpProofRequest.Rules = map[string]interface{}{
 		"query": pubsignals.Query{
 			AllowedIssuers: []string{"*"},
@@ -158,17 +182,12 @@ func (h *Handler) Callback(sId string, tokenBytes []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	keyDIR := h.keyDir
-	if len(keyDIR) == 0 {
-		log.Fatal("host-url is not set")
-	}
-
 	resolver := state.ETHResolver{
 		RPCUrl:   h.NodeRpcUrl,
 		Contract: "0x46Fd04eEa588a3EA7e9F055dd691C688c4148ab3",
 	}
 
-	var verificationKeyLoader = &loaders.FSKeyLoader{Dir: keyDIR}
+	var verificationKeyLoader = &loaders.FSKeyLoader{Dir: h.keyDir}
 	verifier := auth.NewVerifier(verificationKeyLoader, loaders.DefaultSchemaLoader{IpfsURL: h.ipfsUrl}, resolver)
 
 	arm, err := verifier.FullVerify(context.Background(), string(tokenBytes), authRequest.(protocol.AuthorizationRequestMessage))
