@@ -29,6 +29,11 @@ func New(altCfgPath string) (*IssuerConfig, error) {
 		return nil, err
 	}
 
+	err = validateConfig(cfgObj)
+	if err != nil {
+		return nil, fmt.Errorf("error validating config. err: %v", err)
+	}
+
 	logger.Infof("issuer config: %v", cfgObj)
 	return cfgObj, nil
 }
@@ -69,7 +74,10 @@ func setViperEnvConfig() {
 func setConfigDefaults() {
 	viper.SetDefault("LOG_LEVEL", "INFO")
 	viper.SetDefault("DB_FILE_PATH", "issuer.db")
-	viper.SetDefault("KEY_DIR", "keys")
+	viper.SetDefault("RESET_DB", true)
 	viper.SetDefault("LOCAL_URL", "localhost:8001")
+	viper.SetDefault("PUBLISHING_CONTRACT_ADDRESS", "0x46Fd04eEa588a3EA7e9F055dd691C688c4148ab3")
+	viper.SetDefault("CIRCUITS_DIR", "keys")
 	viper.SetDefault("IPFS_URL", "ipfs.io")
 }
+
