@@ -64,7 +64,7 @@ const Page = (props: {issuerPublicUrl: string, issuerLocalUrl: string}) => {
           </Paragraph>
         </Box>
         <Box>
-          <Button sx={{'&:hover': {background: 'black', cursor: 'pointer'}}} onClick={publishState}>Publish state</Button>
+          <Button sx={{'&:hover': {background: 'black', cursor: 'pointer'}}} onClick={publishState}>Publish state on-chain</Button>
           {
             txLoaderBool ? <Paragraph>Publishing ...</Paragraph> : (<Paragraph></Paragraph>)
           }
