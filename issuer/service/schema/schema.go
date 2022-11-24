@@ -2,7 +2,6 @@ package schema
 
 import (
 	"context"
-	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -10,7 +9,6 @@ import (
 	jsonldSuite "github.com/iden3/go-schema-processor/json-ld"
 	"github.com/iden3/go-schema-processor/loaders"
 	"github.com/iden3/go-schema-processor/processor"
-	"github.com/pkg/errors"
 	"net/url"
 )
 
@@ -105,35 +103,18 @@ func (b *Builder) getParsedSlots(schemaURL, credentialType string, dataBytes []b
 }
 
 func (b *Builder) load(schemaURL string) (schema []byte, extension string, err error) {
-	var cacheValue interface{}
-	//nolint:gosec //reason: url hash key
-	hashBytes := sha1.Sum([]byte(schemaURL))
-	hashKey := hex.EncodeToString(hashBytes[:])
+	loader, err := b.getLoader(schemaURL)
 	if err != nil {
+		return nil, "", err
 	}
 
-	// schema doesn't exist in cache. Download and put to cache.
-	if cacheValue == nil {
-		var loader processor.SchemaLoader
-		loader, err = b.getLoader(schemaURL)
-		if err != nil {
-			return nil, "", err
-		}
-		var schemaBytes []byte
-		schemaBytes, _, err = loader.Load(context.Background())
-		if err != nil {
-			return nil, "", err
-		}
-		// use request from loader if Redis cache doesn't available.
-		return schemaBytes, string(JSONLD), nil
+	var schemaBytes []byte
+	schemaBytes, _, err = loader.Load(context.Background())
+	if err != nil {
+		return nil, "", err
 	}
 
-	schemaJSONStr, ok := cacheValue.(string)
-	if !ok {
-		return nil, "", errors.Errorf("can't read schema from cache with url %s and key %s", schemaURL, hashKey)
-	}
-
-	return []byte(schemaJSONStr), string(JSONLD), nil
+	return schemaBytes, string(JSONLD), nil
 }
 
 func (b *Builder) createSchemaHash(schemaBytes []byte, credentialType string) string {
