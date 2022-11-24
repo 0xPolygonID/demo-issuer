@@ -30,7 +30,7 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("creating DB")
-	db, err := database.New(cfg.DBFilePath, cfg.RemoveOldDB)
+	db, err := database.New(cfg.DBFilePath, cfg.ResetDb)
 	if err != nil {
 		return err
 	}
@@ -42,14 +42,14 @@ func CreateApp(altCfgPath string) error {
 	}
 
 	logger.Info("processing secret key")
-	sk, err := secretKeyToBabyJub(cfg.Identity.SecretKey)
+	sk, err := secretKeyToBabyJub(cfg.IdentitySecretKey)
 	if err != nil {
 		return err
 	}
 
 	schemaBuilder := schema.NewBuilder(cfg.IpfsUrl)
 
-	stateManager, err := blockchain.NewStateManager(cfg.NodeRpcUrl, cfg.ContractAddress, cfg.Identity.PublishingKey)
+	stateManager, err := blockchain.NewStateManager(cfg.NodeRpcUrl, cfg.PublishingContractAddress, cfg.PublishingPrivateKey)
 	if err != nil {
 		return err
 	}
