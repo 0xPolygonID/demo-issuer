@@ -1,7 +1,7 @@
-
 name: Security Scan
 on:  # yamllint disable-line rule:truthy
   push:
+  pull_request:
   workflow_call:
     secrets:
       SNYK_TOKEN:
@@ -22,15 +22,12 @@ jobs:
         uses: actions/checkout@master
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/golang@master
+        working-directory: ./issuer
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --org=${{ secrets.SNYK_ORG }} --severity-threshold=medium --sarif-file-output=snyk.sarif
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: snyk.sarif
+          args: --org=${{ secrets.SNYK_ORG }} --severity-threshold=medium
   snyk-code:
     name: Snyk Code and Publish
     runs-on: ubuntu-latest
@@ -40,16 +37,13 @@ jobs:
         uses: actions/checkout@master
       - name: Run Snyk SAST to check for vulnerabilities
         uses: snyk/actions/golang@master
+        working-directory: ./issuer
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --org=${{ secrets.SNYK_ORG }} --sarif-file-output=snyk.sarif
+          args: --org=${{ secrets.SNYK_ORG }}
           command: code test
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: snyk.sarif
 
   golangci:
     name: lint
@@ -61,6 +55,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
+        working-directory: ./issuer
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
@@ -72,6 +67,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Running govulncheck
         uses: Templum/govulncheck-action@v0.0.8
+        working-directory: ./issuer
         continue-on-error: true
         env:
           DEBUG: "true"
@@ -81,9 +77,3 @@ jobs:
           package: ./...
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-vuln: true
-
-      - name: Upload govulncheck report
-        uses: actions/upload-artifact@v3
-        with:
-          name: raw-report
-          path: raw-report.json
