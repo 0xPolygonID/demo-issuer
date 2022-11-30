@@ -51,7 +51,7 @@ func New(
 
 		sk:           sk,
 		publicUrl:    cfg.PublicUrl,
-		circuitsPath: cfg.KeyDir,
+		circuitsPath: cfg.CircuitsDir,
 		stateStore:   stateStore,
 	}
 
@@ -85,12 +85,8 @@ func New(
 		}
 	}
 
-	iden.CommHandler, err = communication.NewCommunicationHandler(iden.Identifier.String(), cfg)
-	if err != nil {
-		return nil, fmt.Errorf("error on communication initialization, %v", err)
-	}
-
-	iden.CmdHandler = command.NewHandler(iden.Identifier, iden.state, cfg.KeyDir)
+	iden.CommHandler = communication.NewCommunicationHandler(iden.Identifier.String(), cfg)
+	iden.CmdHandler = command.NewHandler(iden.Identifier, iden.state, cfg.CircuitsDir)
 
 	logger.Debugf("finished construct issuer's identity (identifier: %s)", iden.Identifier.String())
 	return iden, nil

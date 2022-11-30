@@ -9,6 +9,7 @@ i-verifier-fe: # install verifier frontend
 	yarn --cwd examples/kycAge/verifierClient
 
 r-issuer-fe: # run issuer frontend
+	sleep 2;
 	yarn --cwd examples/kycAge/issuerClient dev
 
 r-verifier-fe: # run verifier frontend

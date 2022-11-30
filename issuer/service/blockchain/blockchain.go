@@ -26,8 +26,8 @@ type StateManager struct {
 	privateKey      *ecdsa.PrivateKey
 }
 
-func NewStateManager(nodeAddress, contractAddress, pk string) (*StateManager, error) {
-	privateKey, err := crypto.HexToECDSA(pk)
+func NewStateManager(nodeAddress, contractAddress, publishPrivateKey string) (*StateManager, error) {
+	privateKey, err := crypto.HexToECDSA(publishPrivateKey)
 	if err != nil {
 		return nil, err
 	}

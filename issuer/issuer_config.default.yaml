@@ -1,13 +1,18 @@
 log_level: TRACE   # TRACE/DEBUG/INFO
-db_file_path: issuer.db
-key_dir: keys
-ipfs_url: ipfs.io
-node_rpc_url:
-contract_address: 0x46Fd04eEa588a3EA7e9F055dd691C688c4148ab3
-remove_old_db: true
-identity:
-  publishing_key:
-  secret_key:
 
+# DB
+db_file_path: issuer.db
+reset_db: true
+
+# On-chain interaction
+node_rpc_url: <mumbai node rpc>
+publishing_contract_address: 0x46Fd04eEa588a3EA7e9F055dd691C688c4148ab3
+publishing_private_key: <mumbai private key>
+
+# Protocol specific information
+circuits_dir: keys
+ipfs_url: ipfs.io
+
+# Hosting
 local_url: 'localhost:8001'
 public_url: https://eaae-46-121-236-63.eu.ngrok.io

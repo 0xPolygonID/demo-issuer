@@ -21,30 +21,14 @@ import (
 
 var userSessionTracker = cache.New(60*time.Minute, 60*time.Minute)
 
-func NewCommunicationHandler(issuerId string, cfg *cfgs.IssuerConfig) (*Handler, error) {
-	if len(cfg.KeyDir) == 0 {
-		return nil, fmt.Errorf("cfg.KeyDir is empty")
-	}
-
-	if len(cfg.PublicUrl) == 0 {
-		return nil, fmt.Errorf("cfg.PublicUrl is empty")
-	}
-
-	if len(cfg.NodeRpcUrl) == 0 {
-		return nil, fmt.Errorf("cfg.NodeRpcUrl is empty")
-	}
-
-	if len(cfg.IpfsUrl) == 0 {
-		return nil, fmt.Errorf("cfg.IpfsUrl is empty")
-	}
-
+func NewCommunicationHandler(issuerId string, cfg *cfgs.IssuerConfig) *Handler {
 	return &Handler{
 		issuerId:   issuerId,
-		keyDir:     cfg.KeyDir,
+		keyDir:     cfg.CircuitsDir,
 		publicUrl:  cfg.PublicUrl,
 		NodeRpcUrl: cfg.NodeRpcUrl,
 		ipfsUrl:    cfg.IpfsUrl,
-	}, nil
+	}
 }
 
 type Handler struct {
@@ -60,12 +44,7 @@ func (h *Handler) GetAuthVerificationRequest() ([]byte, string, error) {
 	logger.Debug("Communication.GetAuthVerificationRequest() invoked")
 
 	sId := strconv.Itoa(rand.Intn(1000000))
-
-	hostUrl := h.publicUrl
-	if len(hostUrl) == 0 {
-		return nil, "", fmt.Errorf("host-url is not set")
-	}
-	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", hostUrl, sId)
+	uri := fmt.Sprintf("%s/api/v1/callback?sessionId=%s", h.publicUrl, sId)
 
 	var request protocol.AuthorizationRequestMessage
 	request = auth.CreateAuthorizationRequestWithMessage("test flow", "message to sign", "1125GJqgw6YEsKFwj63GY87MMxPL9kwDKxPUiwMLNZ", uri)
