@@ -15,8 +15,8 @@ require (
 	github.com/iden3/go-iden3-crypto v0.0.13
 	github.com/iden3/go-jwz v0.1.3
 	github.com/iden3/go-merkletree-sql v1.0.2
-	github.com/iden3/go-rapidsnark/prover v0.0.8-0.20221129135945-624c496794ec
-	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129135945-624c496794ec
+	github.com/iden3/go-rapidsnark/prover v0.0.9
+	github.com/iden3/go-rapidsnark/witness v0.0.3
 	github.com/iden3/go-schema-processor v0.1.0
 	github.com/iden3/iden3comm v0.1.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible

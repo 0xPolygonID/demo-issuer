@@ -236,6 +236,8 @@ github.com/iden3/go-rapidsnark/prover v0.0.7 h1:zmL1ZGPdxmvRsgFJ6Vgfd637KMJZfa5C
 github.com/iden3/go-rapidsnark/prover v0.0.7/go.mod h1:wgDsmKOGCuWGtgVtuW9ARWNguNr4NJAIyg2G7+uTax0=
 github.com/iden3/go-rapidsnark/prover v0.0.8-0.20221129135945-624c496794ec h1:J+0dEWRtc3T5LfH2zZVexI4BEd0GmD6Z6ubOnwOVHzs=
 github.com/iden3/go-rapidsnark/prover v0.0.8-0.20221129135945-624c496794ec/go.mod h1:wgDsmKOGCuWGtgVtuW9ARWNguNr4NJAIyg2G7+uTax0=
+github.com/iden3/go-rapidsnark/prover v0.0.9 h1:Bifg6VtrvrXiYsfv8ULBQweeT75sw3FjV4bbU3vmNQ0=
+github.com/iden3/go-rapidsnark/prover v0.0.9/go.mod h1:wgDsmKOGCuWGtgVtuW9ARWNguNr4NJAIyg2G7+uTax0=
 github.com/iden3/go-rapidsnark/types v0.0.1 h1:WTGzdFXKlKo0CzVk1jyN4FsTDKdR+EPfn2wR3pdeXKQ=
 github.com/iden3/go-rapidsnark/types v0.0.1/go.mod h1:ApgcaUxKIgSRA6fAeFxK7p+lgXXfG4oA2HN5DhFlfF4=
 github.com/iden3/go-rapidsnark/types v0.0.2 h1:CjJSrlbWchHzuMRdxSYrEh7n/akP+Z2PLNbwT5yBmQY=
@@ -244,6 +246,8 @@ github.com/iden3/go-rapidsnark/verifier v0.0.2 h1:RDV2KPF5iNQ9f1wqFDWuPH4EMQ0HHy
 github.com/iden3/go-rapidsnark/verifier v0.0.2/go.mod h1:5Zt1geaTz1wyo3IlzrgCj8HNt3J1uOC51E1FXCbhOwk=
 github.com/iden3/go-rapidsnark/witness v0.0.1 h1:y+1G1hPqsoea8gZgVXipD5KD0RjrCsSgn/CpYLTML5Q=
 github.com/iden3/go-rapidsnark/witness v0.0.1/go.mod h1:ZRd4PX8vJX/2aJ/1XRvtwMon5F7phDRX6C7v/BYBrwE=
+github.com/iden3/go-rapidsnark/witness v0.0.3 h1:N2jZKJvVcLBK+OUi23KX2lKeeUGJwkQsOxkeyhs/EA8=
+github.com/iden3/go-rapidsnark/witness v0.0.3/go.mod h1:ZRd4PX8vJX/2aJ/1XRvtwMon5F7phDRX6C7v/BYBrwE=
 github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129135945-624c496794ec h1:J9S8ucAi1jTSYBMQEnM3cdsAcmhhtO6NX1rj8QQWUPw=
 github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129135945-624c496794ec/go.mod h1:ZRd4PX8vJX/2aJ/1XRvtwMon5F7phDRX6C7v/BYBrwE=
 github.com/iden3/go-schema-processor v0.1.0 h1:vZ5PfBDl9PflXhUDH4gVC6VPQKBtKrK4wC29PYsGxg4=
