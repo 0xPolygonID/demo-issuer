@@ -10,8 +10,8 @@ import (
 	"github.com/iden3/go-merkletree-sql"
 	"github.com/iden3/go-schema-processor/verifiable"
 	logger "github.com/sirupsen/logrus"
-	"issuer/db"
 	"issuer/service/claim"
+	"issuer/service/db"
 	"issuer/service/schema"
 	"math/big"
 )

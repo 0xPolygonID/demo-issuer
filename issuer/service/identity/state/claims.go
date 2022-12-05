@@ -6,8 +6,8 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 	logger "github.com/sirupsen/logrus"
-	"issuer/db"
 	"issuer/service/claim"
+	"issuer/service/db"
 )
 
 type Claims struct {
