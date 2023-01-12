@@ -39,7 +39,6 @@ type Handler struct {
 	ipfsUrl    string
 }
 
-// sending sign in request to the client (move it to the issuer communication (identity))
 func (h *Handler) GetAuthVerificationRequest() ([]byte, string, error) {
 	logger.Debug("Communication.GetAuthVerificationRequest() invoked")
 
@@ -149,8 +148,6 @@ func (h *Handler) GetAgeClaimOffer(userId, claimId string) ([]byte, error) {
 	return msgBytes, nil
 }
 
-// Handle the sign in response from the user
-// Callback works with sign-in callbacks
 func (h *Handler) Callback(sId string, tokenBytes []byte) ([]byte, error) {
 	logger.Debug("Communication.Callback() invoked")
 

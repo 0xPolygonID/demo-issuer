@@ -27,7 +27,6 @@ func NewRevocations(treeStorage *store.BoltStore, treeDepth int) (*Revocations, 
 
 }
 
-// GenerateRevocationProof generates the proof of existence (or non-existence) of an nonce in RevocationTree
 func (r *Revocations) GenerateRevocationProof(nonce *big.Int, root *merkletree.Hash) (*merkletree.Proof, error) {
 	logger.Debugf("GenerateRevocationProof() invoked with nonce of %d", nonce)
 

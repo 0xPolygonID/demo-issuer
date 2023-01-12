@@ -20,9 +20,7 @@ import (
 )
 
 const (
-	// SubjectPositionIndex save subject in index part of claim. By default.
 	SubjectPositionIndex = "index"
-	// SubjectPositionValue save subject in value part of claim.
 	SubjectPositionValue = "value"
 
 	BabyJubSignatureType = "BJJSignature2021"
@@ -225,38 +223,6 @@ func BJJSignatureFromHexString(sigHex string) (*babyjub.Signature, error) {
 	return bjjSig, errors.WithStack(err)
 }
 
-//func SignClaimEntry(claim *Claim, signFunc func(z *big.Int) ([]byte, error)) (*verifiable.BJJSignatureProof2021, error) {
-//	hashIndex, hashValue, err := claim.CoreClaim.HiHv()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	commonHash, err := poseidon.Hash([]*big.Int{hashIndex, hashValue})
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	issuerMTP := &verifiable.Iden3SparseMerkleProof{}
-//	err = json.Unmarshal(claim.MTPProof, issuerMTP)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	sig, err := signFunc(commonHash)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// followed https://w3c-ccg.github.io/ld-proofs/
-//	proof := verifiable.BJJSignatureProof2021{}
-//	proof.Type = BabyJubSignatureType
-//	proof.Signature = hex.EncodeToString(sig)
-//	issuerMTP.IssuerData.AuthClaim = claim.CoreClaim
-//	proof.IssuerData = issuerMTP.IssuerData
-//
-//	return &proof, nil
-//}
-
 func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) {
 	claimIdPos, err := getClaimIdPosition(c.CoreClaim)
 	if err != nil {
@@ -273,7 +239,6 @@ func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) 
 		credSubjects["id"] = c.OtherIdentifier
 	}
 
-	// * create proof object
 	proofs := make([]interface{}, 0)
 
 	signatureProof := &verifiable.BJJSignatureProof2021{}
@@ -296,7 +261,6 @@ func ClaimModelToIden3Credential(c *Claim) (*verifiable.Iden3Credential, error) 
 		proofs = append(proofs, mtpProof)
 	}
 
-	// create credential status object
 	credStatus := &verifiable.CredentialStatus{}
 	if c.CredentialStatus != nil && string(c.CredentialStatus) != "{}" {
 		err = json.Unmarshal(c.CredentialStatus, credStatus)
@@ -360,7 +324,6 @@ func strMTHex(s *string) *merkletree.Hash {
 	return h
 }
 
-// Rand generate random uint64
 func Rand() (uint64, error) {
 	var buf [8]byte
 	// TODO: this was changed because revocation nonce is cut in dart / js if number is too big

@@ -2,7 +2,6 @@ package models
 
 import "github.com/iden3/go-merkletree-sql"
 
-// GetRevocationStatusResponse status of revocation nonce. Info required to check revocation state of claim in circuits
 type GetRevocationStatusResponse struct {
 	Issuer struct {
 		State              string `codec:"state,omitempty"`
