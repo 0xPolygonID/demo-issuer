@@ -6,6 +6,10 @@ The Demo Issuer is a light weight implementation of the issuer actor in PolygonI
 
 You can find further information on our [associated documentation](https://demoissuer.gitbook.io/demoissuer/).
 
+## Deprecation warning!
+Demo issuer is not compatible with the latest version of the protocol. Use Issuer Node instead: https://github.com/0xPolygonID/sh-id-platform
+
+
 ## Usage
 
 ### Prerequisites
